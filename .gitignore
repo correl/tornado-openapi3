@@ -1,0 +1,12 @@
+*~
+.DS_Store
+.idea
+poetry.lock
+.python-version
+*.log
+tmp/
+
+*.py[cod]
+*.egg
+build
+htmlcov
