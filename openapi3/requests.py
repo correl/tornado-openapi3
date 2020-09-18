@@ -27,7 +27,7 @@ class TornadoRequestFactory:
             full_url_pattern=path,
             method=request.method.lower() if request.method else "get",
             parameters=RequestParameters(
-                query=query_arguments, header=Headers(request.headers)
+                query=query_arguments, header=Headers(request.headers.get_all())
             ),
             body=request.body.decode("utf-8"),
             mimetype="text/html",
