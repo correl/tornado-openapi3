@@ -1,9 +1,10 @@
 [tool.poetry]
 name = "tornado-openapi3"
 version = "0.1.0"
-description = "Tornado OpenAPI 3 request and response validation"
+description = "Tornado OpenAPI 3 request and response validation library"
 authors = ["Correl Roush <correl@gmail.com>"]
 license = "MIT"
+readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.7"
