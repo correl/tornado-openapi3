@@ -1,4 +1,5 @@
-from typing import Optional
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 import unittest
 from urllib.parse import urlencode
 
@@ -6,6 +7,9 @@ import attr
 from hypothesis import given
 import hypothesis.strategies as s
 from openapi_core import create_spec  # type: ignore
+from openapi_core.schema.parameters.exceptions import (  # type: ignore
+    MissingRequiredParameter,
+)
 from openapi_core.validation.request.datatypes import (  # type: ignore
     RequestParameters,
     OpenAPIRequest,
@@ -19,8 +23,35 @@ from werkzeug.datastructures import ImmutableMultiDict
 from openapi3 import TornadoRequestFactory
 
 
+@dataclass
+class Parameters:
+    headers: Dict[str, str]
+    query_parameters: Dict[str, str]
+
+    def as_openapi(self) -> List[dict]:
+        headers = [
+            {
+                "name": name.lower(),
+                "in": "header",
+                "required": True,
+                "schema": {"type": "string", "enum": [value]},
+            }
+            for name, value in self.headers.items()
+        ]
+        qargs = [
+            {
+                "name": name.lower(),
+                "in": "query",
+                "required": True,
+                "schema": {"type": "string", "enum": [value]},
+            }
+            for name, value in self.query_parameters.items()
+        ]
+        return headers + qargs
+
+
 @s.composite
-def parameters(draw):
+def parameters(draw, min_headers=0, min_query_parameters=0) -> Parameters:
     field_name = s.text(
         s.characters(
             min_codepoint=33,
@@ -36,10 +67,12 @@ def parameters(draw):
         ),
         min_size=1,
     )
-    return {
-        "headers": draw(s.dictionaries(field_name, field_value)),
-        "query_parameters": draw(s.dictionaries(field_name, field_value)),
-    }
+    return Parameters(
+        headers=draw(s.dictionaries(field_name, field_value, min_size=min_headers)),
+        query_parameters=draw(
+            s.dictionaries(field_name, field_value, min_size=min_query_parameters)
+        ),
+    )
 
 
 class TestRequestFactory(unittest.TestCase):
@@ -74,25 +107,7 @@ class TestRequest(AsyncHTTPTestCase):
         return Application([(r"/", TestHandler)])
 
     @given(parameters())
-    def test_simple_request(self, parameters) -> None:
-        headers = [
-            {
-                "name": name.lower(),
-                "in": "header",
-                "required": True,
-                "schema": {"type": "string", "enum": [value]},
-            }
-            for name, value in parameters["headers"].items()
-        ]
-        qargs = [
-            {
-                "name": name.lower(),
-                "in": "query",
-                "required": True,
-                "schema": {"type": "string", "enum": [value]},
-            }
-            for name, value in parameters["query_parameters"].items()
-        ]
+    def test_simple_request(self, parameters: Parameters) -> None:
         spec = create_spec(
             {
                 "openapi": "3.0.0",
@@ -100,7 +115,7 @@ class TestRequest(AsyncHTTPTestCase):
                 "paths": {
                     "/": {
                         "get": {
-                            "parameters": headers + qargs,
+                            "parameters": parameters.as_openapi(),
                             "responses": {"default": {"description": "Root response"}},
                         }
                     }
@@ -109,8 +124,32 @@ class TestRequest(AsyncHTTPTestCase):
         )
         validator = RequestValidator(spec)
         self.fetch(
-            "/?" + urlencode(parameters["query_parameters"]),
-            headers=HTTPHeaders(parameters["headers"]),
+            "/?" + urlencode(parameters.query_parameters),
+            headers=HTTPHeaders(parameters.headers),
         )
         result = validator.validate(self.request)
         result.raise_for_errors()
+
+    @given(parameters(min_headers=1) | parameters(min_query_parameters=1))
+    def test_simple_request_fails_without_parameters(
+        self, parameters: Parameters
+    ) -> None:
+        spec = create_spec(
+            {
+                "openapi": "3.0.0",
+                "info": {"title": "Test specification", "version": "0.1"},
+                "paths": {
+                    "/": {
+                        "get": {
+                            "parameters": parameters.as_openapi(),
+                            "responses": {"default": {"description": "Root response"}},
+                        }
+                    }
+                },
+            }
+        )
+        validator = RequestValidator(spec)
+        self.fetch("/")
+        result = validator.validate(self.request)
+        with self.assertRaises(MissingRequiredParameter):
+            result.raise_for_errors()
