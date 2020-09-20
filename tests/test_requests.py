@@ -4,9 +4,10 @@ import unittest
 from urllib.parse import urlencode
 
 import attr
-from hypothesis import given
+from hypothesis import given, settings
 import hypothesis.strategies as s
 from openapi_core import create_spec  # type: ignore
+from openapi_core.exceptions import OpenAPIError  # type: ignore
 from openapi_core.schema.parameters.exceptions import (  # type: ignore
     MissingRequiredParameter,
 )
@@ -21,6 +22,9 @@ from tornado.web import Application, RequestHandler
 from werkzeug.datastructures import ImmutableMultiDict
 
 from openapi3 import TornadoRequestFactory
+
+
+settings(deadline=None)
 
 
 @dataclass
@@ -104,7 +108,7 @@ class TestRequest(AsyncHTTPTestCase):
                 nonlocal testcase
                 testcase.request = TornadoRequestFactory.create(self.request)
 
-        return Application([(r"/", TestHandler)])
+        return Application([(r"/.*", TestHandler)])
 
     @given(parameters())
     def test_simple_request(self, parameters: Parameters) -> None:
@@ -152,4 +156,59 @@ class TestRequest(AsyncHTTPTestCase):
         self.fetch("/")
         result = validator.validate(self.request)
         with self.assertRaises(MissingRequiredParameter):
+            result.raise_for_errors()
+
+    def test_url_parameters(self) -> None:
+        spec = create_spec(
+            {
+                "openapi": "3.0.0",
+                "info": {"title": "Test specification", "version": "0.1"},
+                "paths": {
+                    "/{id}": {
+                        "get": {
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": True,
+                                    "schema": {"type": "integer"},
+                                }
+                            ],
+                            "responses": {"default": {"description": "Root response"}},
+                        }
+                    }
+                },
+            }
+        )
+        validator = RequestValidator(spec)
+        self.fetch("/1234")
+        result = validator.validate(self.request)
+        result.raise_for_errors()
+
+    def test_bad_url_parameters(self) -> None:
+        spec = create_spec(
+            {
+                "openapi": "3.0.0",
+                "info": {"title": "Test specification", "version": "0.1"},
+                "paths": {
+                    "/{id}": {
+                        "get": {
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": True,
+                                    "schema": {"type": "integer"},
+                                }
+                            ],
+                            "responses": {"default": {"description": "Root response"}},
+                        }
+                    }
+                },
+            }
+        )
+        validator = RequestValidator(spec)
+        self.fetch("/abcd")
+        result = validator.validate(self.request)
+        with self.assertRaises(OpenAPIError):
             result.raise_for_errors()
