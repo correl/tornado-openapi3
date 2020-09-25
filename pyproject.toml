@@ -6,7 +6,7 @@ authors = ["Correl Roush <correl@gmail.com>"]
 license = "MIT"
 readme = "README.rst"
 packages = [
-    { include = "openapi3" },
+    { include = "tornado_openapi3" },
 ]
 
 [tool.poetry.dependencies]

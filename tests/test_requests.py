@@ -21,7 +21,7 @@ from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application, RequestHandler
 from werkzeug.datastructures import ImmutableMultiDict
 
-from openapi3 import TornadoRequestFactory
+from tornado_openapi3 import TornadoRequestFactory
 
 
 settings(deadline=None)
