@@ -5,7 +5,7 @@ from openapi_core.validation.request.datatypes import (  # type: ignore
     OpenAPIRequest,
 )
 from openapi_core.validation.request import validators  # type: ignore
-from tornado.httputil import HTTPServerRequest
+from tornado.httputil import HTTPServerRequest  # type: ignore
 from werkzeug.datastructures import ImmutableMultiDict, Headers
 
 
