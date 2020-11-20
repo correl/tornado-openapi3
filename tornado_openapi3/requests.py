@@ -30,5 +30,7 @@ class TornadoRequestFactory:
                 query=query_arguments, header=Headers(request.headers.get_all())
             ),
             body=request.body.decode("utf-8"),
-            mimetype="text/html",
+            mimetype=request.headers.get(
+                "Content-Type", "application/x-www-form-urlencoded"
+            ),
         )

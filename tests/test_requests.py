@@ -89,7 +89,7 @@ class TestRequestFactory(unittest.TestCase):
             method="get",
             parameters=RequestParameters(query=ImmutableMultiDict([("bar", "baz")])),
             body="",
-            mimetype="text/html",
+            mimetype="application/x-www-form-urlencoded",
         )
         openapi_request = TornadoRequestFactory.create(tornado_request)
         self.assertEqual(attr.asdict(expected), attr.asdict(openapi_request))
