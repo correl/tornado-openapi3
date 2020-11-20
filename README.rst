@@ -2,6 +2,9 @@
  Tornado OpenAPI 3
 ===================
 
+.. image:: https://travis-ci.com/correl/tornado-openapi3.svg?branch=master
+    :target: https://travis-ci.com/correl/tornado-openapi3
+
 Tornado OpenAPI 3 request and response validation library.
 
 Provides integration between the `Tornado`_ web framework and `Openapi-core`_
