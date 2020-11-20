@@ -4,6 +4,7 @@ from openapi_core.validation.request.datatypes import (  # type: ignore
     RequestParameters,
     OpenAPIRequest,
 )
+from openapi_core.validation.request import validators  # type: ignore
 from tornado.httputil import HTTPServerRequest
 from werkzeug.datastructures import ImmutableMultiDict, Headers
 
@@ -34,3 +35,8 @@ class TornadoRequestFactory:
                 "Content-Type", "application/x-www-form-urlencoded"
             ),
         )
+
+
+class RequestValidator(validators.RequestValidator):
+    def validate(self, request: HTTPServerRequest):
+        return super().validate(TornadoRequestFactory.create(request))
