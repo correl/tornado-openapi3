@@ -4,8 +4,8 @@ import unittest
 from urllib.parse import urlencode
 
 import attr
-from hypothesis import given, settings
-import hypothesis.strategies as s
+from hypothesis import given, settings  # type: ignore
+import hypothesis.strategies as s  # type: ignore
 from openapi_core import create_spec  # type: ignore
 from openapi_core.exceptions import OpenAPIError  # type: ignore
 from openapi_core.schema.parameters.exceptions import (  # type: ignore
