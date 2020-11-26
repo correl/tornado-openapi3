@@ -30,7 +30,7 @@ Adding validation to request handlers
     )
     from openapi_core.unmarshalling.schemas.exceptions import ValidateError  # type: ignore
     from tornado.web import RequestHandler
-    from tornado_openapi3.requests import RequestValidator
+    from tornado_openapi3 import RequestValidator
     import yaml
 
 
@@ -53,3 +53,24 @@ Adding validation to request handlers
                 self.finish()
             except OpenAPIError:
                 raise
+
+Validating a response
+=====================
+
+.. code:: python
+
+    from tornado.testing import AsyncHTTPTestCase
+    from tornado_openapi3 import ResponseValidator
+
+    from myapplication import create_app, spec
+
+
+    class TestResponses(AsyncHTTPTestCase):
+        def get_app(self) -> Application:
+            return create_app()
+
+        def test_status(self) -> None:
+            validator = ResponseValidator(spec)
+            response = self.fetch("/status")
+            result = validator.validate(response)
+            result.raise_for_errors()
