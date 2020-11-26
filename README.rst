@@ -4,6 +4,11 @@
 
 .. image:: https://travis-ci.com/correl/tornado-openapi3.svg?branch=master
     :target: https://travis-ci.com/correl/tornado-openapi3
+.. image:: https://codecov.io/gh/correl/tornado-openapi3/branch/master/graph/badge.svg?token=CTYWWDXTL9
+    :target: https://codecov.io/gh/correl/tornado-openapi3
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+
 
 Tornado OpenAPI 3 request and response validation library.
 
