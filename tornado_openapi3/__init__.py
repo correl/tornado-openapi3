@@ -1,3 +1,6 @@
-from tornado_openapi3.requests import TornadoRequestFactory
+from tornado_openapi3.requests import RequestValidator, TornadoRequestFactory
 
-__all__ = ["TornadoRequestFactory"]
+__all__ = [
+    "RequestValidator",
+    "TornadoRequestFactory",
+]

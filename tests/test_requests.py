@@ -16,6 +16,7 @@ from openapi_core.validation.request.datatypes import (  # type: ignore
     OpenAPIRequest,
 )
 from openapi_core.validation.request.validators import RequestValidator  # type: ignore
+from tornado.httpclient import HTTPRequest  # type: ignore
 from tornado.httputil import HTTPHeaders, HTTPServerRequest  # type: ignore
 from tornado.testing import AsyncHTTPTestCase  # type: ignore
 from tornado.web import Application, RequestHandler  # type: ignore
@@ -80,7 +81,21 @@ def parameters(draw, min_headers=0, min_query_parameters=0) -> Parameters:
 
 
 class TestRequestFactory(unittest.TestCase):
-    def test_request(self) -> None:
+    def test_http_request(self) -> None:
+        tornado_request = HTTPRequest(
+            method="GET", url="http://example.com/foo?bar=baz"
+        )
+        expected = OpenAPIRequest(
+            full_url_pattern="http://example.com/foo",
+            method="get",
+            parameters=RequestParameters(query=ImmutableMultiDict([("bar", "baz")])),
+            body="",
+            mimetype="application/x-www-form-urlencoded",
+        )
+        openapi_request = TornadoRequestFactory.create(tornado_request)
+        self.assertEqual(attr.asdict(expected), attr.asdict(openapi_request))
+
+    def test_http_server_request(self) -> None:
         tornado_request = HTTPServerRequest(
             method="GET", uri="http://example.com/foo?bar=baz"
         )
