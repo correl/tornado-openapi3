@@ -117,9 +117,11 @@ class TestRequestFactory(unittest.TestCase):
         request_url = f"{url}?{urlencode(parameters)}" if url else ""
         parsed = urlparse(request_url)
         tornado_request = HTTPServerRequest(
-            method="GET", uri=f"{parsed.path}?{parsed.query}")
+            method="GET",
+            uri=f"{parsed.path}?{parsed.query}",
+        )
         tornado_request.protocol = parsed.scheme
-        tornado_request.host = parsed.netloc.split(':')[0]
+        tornado_request.host = parsed.netloc.split(":")[0]
         expected = OpenAPIRequest(
             full_url_pattern=url,
             method="get",
