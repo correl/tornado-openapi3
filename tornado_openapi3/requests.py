@@ -25,10 +25,9 @@ class TornadoRequestFactory:
                 path = ""
                 query_arguments = ImmutableMultiDict()
         else:
-            if request.uri:
-                path, _, _ = request.uri.partition("?")
-            else:
-                path = ""
+            path, _, _ = request.full_url().partition("?")
+            if path == '://':
+                path = ''
             query_arguments = ImmutableMultiDict(
                 itertools.chain(
                     *[

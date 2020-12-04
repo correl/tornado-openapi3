@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 import unittest
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import attr
 from hypothesis import given, settings  # type: ignore
@@ -115,7 +115,11 @@ class TestRequestFactory(unittest.TestCase):
     def test_http_server_request(self, opts) -> None:
         url, parameters = opts
         request_url = f"{url}?{urlencode(parameters)}" if url else ""
-        tornado_request = HTTPServerRequest(method="GET", uri=request_url)
+        parsed = urlparse(request_url)
+        tornado_request = HTTPServerRequest(
+            method="GET", uri=f"{parsed.path}?{parsed.query}")
+        tornado_request.protocol = parsed.scheme
+        tornado_request.host = parsed.netloc.split(':')[0]
         expected = OpenAPIRequest(
             full_url_pattern=url,
             method="get",
