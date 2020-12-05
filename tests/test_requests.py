@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import unittest
 from urllib.parse import urlencode, urlparse
 
 import attr
-from hypothesis import given, settings  # type: ignore
+from hypothesis import given, settings
 import hypothesis.strategies as s  # type: ignore
 from openapi_core import create_spec  # type: ignore
 from openapi_core.exceptions import OpenAPIError  # type: ignore
@@ -69,16 +69,18 @@ field_value = s.text(
 )
 
 
-def headers(min_size=0):
+def headers(min_size: int = 0) -> s.SearchStrategy[Dict[str, str]]:
     return s.dictionaries(field_name, field_value, min_size=min_size)
 
 
-def query_parameters(min_size=0):
+def query_parameters(min_size: int = 0) -> s.SearchStrategy[Dict[str, str]]:
     return s.dictionaries(field_name, field_value, min_size=min_size)
 
 
 @s.composite
-def parameters(draw, min_headers=0, min_query_parameters=0) -> Parameters:
+def parameters(
+    draw: Callable[[Any], Any], min_headers: int = 0, min_query_parameters: int = 0
+) -> Parameters:
     return Parameters(
         headers=draw(headers(min_size=min_headers)),
         query_parameters=draw(query_parameters(min_size=min_query_parameters)),
@@ -92,7 +94,7 @@ class TestRequestFactory(unittest.TestCase):
             s.tuples(s.just("http://example.com/foo"), query_parameters()),
         )
     )
-    def test_http_request(self, opts) -> None:
+    def test_http_request(self, opts: Tuple[str, Dict[str, str]]) -> None:
         url, parameters = opts
         request_url = f"{url}?{urlencode(parameters)}" if url else ""
         tornado_request = HTTPRequest(method="GET", url=request_url)
@@ -112,7 +114,7 @@ class TestRequestFactory(unittest.TestCase):
             s.tuples(s.just("http://example.com/foo"), query_parameters()),
         )
     )
-    def test_http_server_request(self, opts) -> None:
+    def test_http_server_request(self, opts: Tuple[str, Dict[str, str]]) -> None:
         url, parameters = opts
         request_url = f"{url}?{urlencode(parameters)}" if url else ""
         parsed = urlparse(request_url)

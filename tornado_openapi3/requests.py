@@ -3,8 +3,9 @@ from urllib.parse import parse_qsl
 from typing import Union
 
 from openapi_core.validation.request.datatypes import (  # type: ignore
-    RequestParameters,
     OpenAPIRequest,
+    RequestParameters,
+    RequestValidationResult,
 )
 from openapi_core.validation.request import validators  # type: ignore
 from tornado.httpclient import HTTPRequest  # type: ignore
@@ -50,7 +51,9 @@ class TornadoRequestFactory:
 
 
 class RequestValidator(validators.RequestValidator):
-    def validate(self, request: Union[HTTPRequest, HTTPServerRequest]):
+    def validate(
+        self, request: Union[HTTPRequest, HTTPServerRequest]
+    ) -> RequestValidationResult:
         return super().validate(TornadoRequestFactory.create(request))
 
 

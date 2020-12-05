@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional, TypeVar
 import unittest
 
 import attr
 
-from hypothesis import given, settings  # type: ignore
-import hypothesis.strategies as s  # type: ignore
+from hypothesis import given, settings
+import hypothesis.strategies as s
 
 from openapi_core import create_spec  # type: ignore
 from openapi_core.validation.response.datatypes import OpenAPIResponse  # type: ignore
@@ -18,6 +18,7 @@ from tornado_openapi3 import (
     TornadoResponseFactory,
 )
 
+T = TypeVar("T")
 settings(deadline=None)
 
 
@@ -39,7 +40,7 @@ class Responses:
 
 
 @s.composite
-def responses(draw, min_headers=0) -> Responses:
+def responses(draw: Callable[[Any], Any], min_headers: int = 0) -> Responses:
     field_name = s.text(
         s.characters(
             min_codepoint=33,
@@ -55,9 +56,11 @@ def responses(draw, min_headers=0) -> Responses:
         ),
         min_size=1,
     )
+    code = s.sampled_from([200, 304, 400, 500])
+    headers = s.dictionaries(field_name, field_value, min_size=min_headers)
     return Responses(
-        code=draw(s.sampled_from([200, 304, 400, 500])),
-        headers=draw(s.dictionaries(field_name, field_value, min_size=min_headers)),
+        code=draw(code),
+        headers=draw(headers),
     )
 
 
