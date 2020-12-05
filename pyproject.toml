@@ -28,6 +28,10 @@ pytest-cov = "*"
 pytest-flake8 = "*"
 pytest-mypy = "*"
 
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+
 [tool.pytest.ini_options]
 addopts = "--cov=tornado_openapi3 --black --flake8 --mypy"
 
