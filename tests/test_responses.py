@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, TypeVar
+from typing import Any, Callable, Dict, Optional
 import unittest
 
 import attr
 
-from hypothesis import given, settings
+from hypothesis import given
 import hypothesis.strategies as s
 
 from openapi_core import create_spec  # type: ignore
@@ -17,9 +17,6 @@ from tornado_openapi3 import (
     ResponseValidator,
     TornadoResponseFactory,
 )
-
-T = TypeVar("T")
-settings(deadline=None)
 
 
 @dataclass

@@ -4,7 +4,7 @@ import unittest
 from urllib.parse import urlencode, urlparse
 
 import attr
-from hypothesis import given, settings
+from hypothesis import given
 import hypothesis.strategies as s  # type: ignore
 from openapi_core import create_spec  # type: ignore
 from openapi_core.exceptions import OpenAPIError  # type: ignore
@@ -22,9 +22,6 @@ from tornado.web import Application, RequestHandler  # type: ignore
 from werkzeug.datastructures import ImmutableMultiDict
 
 from tornado_openapi3 import RequestValidator, TornadoRequestFactory
-
-
-settings(deadline=None)
 
 
 @dataclass
