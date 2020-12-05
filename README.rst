@@ -121,21 +121,18 @@ Configuring Hypothesis
 
 Many of the tests make use of `Hypothesis`_ to specify their expectations and
 generate a large volume of randomized test input. Because of this, the tests may
-take a long time to run on slower computers. Three profiles are defined for
+take a long time to run on slower computers. Two profiles are defined for
 Hypothesis to use which can be selected by setting the ``HYPOTHESIS_PROFILE``
 environment variable to one of the following values:
 
 ``default``
-  Runs tests using the default Hypothesis settings (100 examples per test with a
-  default completion deadline)
+  Runs tests using the default Hypothesis settings (100 examples per test) and
+  no completion deadline.
 
 ``dev``
   The fastest profile, meant for local development only. Uses only 10 examples
   per test with no completion deadline.
 
-``ci``
-  The slowest profile, used for automated testing. Uses 1000 examples per test,
-  with the default completion deadline.
 
 .. _Black: https://github.com/psf/black
 .. _Flake8: https://flake8.pycqa.org/
