@@ -66,7 +66,7 @@ class TestResponseFactory(unittest.TestCase):
         tornado_request = HTTPRequest(url="http://example.com")
         tornado_response = HTTPResponse(request=tornado_request, code=200)
         expected = OpenAPIResponse(
-            data="",
+            data=b"",
             status_code=200,
             mimetype="text/html",
         )

@@ -99,7 +99,7 @@ class TestRequestFactory(unittest.TestCase):
             full_url_pattern=url,
             method="get",
             parameters=RequestParameters(query=ImmutableMultiDict(parameters)),
-            body="",
+            body=b"",
             mimetype="application/x-www-form-urlencoded",
         )
         openapi_request = TornadoRequestFactory.create(tornado_request)
@@ -125,7 +125,7 @@ class TestRequestFactory(unittest.TestCase):
             full_url_pattern=url,
             method="get",
             parameters=RequestParameters(query=ImmutableMultiDict(parameters)),
-            body="",
+            body=b"",
             mimetype="application/x-www-form-urlencoded",
         )
         openapi_request = TornadoRequestFactory.create(tornado_request)

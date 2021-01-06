@@ -13,7 +13,7 @@ class TornadoResponseFactory:
     def create(cls, response: HTTPResponse) -> OpenAPIResponse:
         mimetype = response.headers.get("Content-Type", "text/html")
         return OpenAPIResponse(
-            data=response.body.decode("utf-8") if response.body else "",
+            data=response.body if response.body else b"",
             status_code=response.code,
             mimetype=mimetype,
         )
