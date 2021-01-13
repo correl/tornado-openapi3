@@ -15,6 +15,7 @@ packages = [
 python = "^3.7"
 tornado = "^4 || ^5 || ^6"
 openapi-core = "^0.13.4"
+ietfparse = "^1.7.0"
 
 [tool.poetry.dev-dependencies]
 black = { version = "*", allow-prereleases = true }

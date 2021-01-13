@@ -12,6 +12,8 @@ from tornado.httpclient import HTTPRequest  # type: ignore
 from tornado.httputil import HTTPServerRequest  # type: ignore
 from werkzeug.datastructures import ImmutableMultiDict, Headers
 
+from .util import parse_mimetype
+
 
 class TornadoRequestFactory:
     @classmethod
@@ -44,8 +46,8 @@ class TornadoRequestFactory:
                 query=query_arguments, header=Headers(request.headers.get_all())
             ),
             body=request.body if request.body else b"",
-            mimetype=request.headers.get(
-                "Content-Type", "application/x-www-form-urlencoded"
+            mimetype=parse_mimetype(
+                request.headers.get("Content-Type", "application/x-www-form-urlencoded")
             ),
         )
 

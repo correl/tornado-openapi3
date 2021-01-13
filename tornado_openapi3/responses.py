@@ -6,12 +6,13 @@ from openapi_core.validation.response import validators  # type: ignore
 from tornado.httpclient import HTTPResponse  # type: ignore
 
 from .requests import TornadoRequestFactory
+from .util import parse_mimetype
 
 
 class TornadoResponseFactory:
     @classmethod
     def create(cls, response: HTTPResponse) -> OpenAPIResponse:
-        mimetype = response.headers.get("Content-Type", "text/html")
+        mimetype = parse_mimetype(response.headers.get("Content-Type", "text/html"))
         return OpenAPIResponse(
             data=response.body if response.body else b"",
             status_code=response.code,
