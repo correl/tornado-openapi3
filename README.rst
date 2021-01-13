@@ -125,7 +125,7 @@ take a long time to run on slower computers. Two profiles are defined for
 Hypothesis to use which can be selected by setting the ``HYPOTHESIS_PROFILE``
 environment variable to one of the following values:
 
-``default``
+``ci``
   Runs tests using the default Hypothesis settings (100 examples per test) and
   no completion deadline.
 
