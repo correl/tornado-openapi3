@@ -9,7 +9,7 @@ from openapi_core.validation.request.datatypes import (  # type: ignore
 )
 from openapi_core.validation.request import validators  # type: ignore
 from tornado.httpclient import HTTPRequest  # type: ignore
-from tornado.httputil import HTTPServerRequest  # type: ignore
+from tornado.httputil import HTTPServerRequest, parse_cookie  # type: ignore
 from werkzeug.datastructures import ImmutableMultiDict, Headers
 
 from .util import parse_mimetype
@@ -43,7 +43,9 @@ class TornadoRequestFactory:
             full_url_pattern=path,
             method=request.method.lower() if request.method else "get",
             parameters=RequestParameters(
-                query=query_arguments, header=Headers(request.headers.get_all())
+                query=query_arguments,
+                header=Headers(request.headers.get_all()),
+                cookie=parse_cookie(request.headers.get("Cookie", "")),
             ),
             body=request.body if request.body else b"",
             mimetype=parse_mimetype(

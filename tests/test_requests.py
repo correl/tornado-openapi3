@@ -124,7 +124,9 @@ class TestRequestFactory(unittest.TestCase):
         expected = OpenAPIRequest(
             full_url_pattern=url,
             method="get",
-            parameters=RequestParameters(query=ImmutableMultiDict(parameters)),
+            parameters=RequestParameters(
+                query=ImmutableMultiDict(parameters), path={}, cookie={}
+            ),
             body=b"",
             mimetype="application/x-www-form-urlencoded",
         )
