@@ -21,10 +21,62 @@ logger = logging.getLogger(__name__)
 
 
 class OpenAPIRequestHandler(tornado.web.RequestHandler):
-    spec: dict = {}
-    custom_media_type_deserializers: dict = {}
+    @property
+    def spec(self) -> dict:
+        """The OpenAPI 3 specification as a Python dictionary.
+
+        Override this in your request handlers to load or define your OpenAPI 3
+        spec.
+
+        """
+        return dict()
+
+    @property
+    def custom_media_type_deserializers(self) -> dict:
+        """A dictionary mapping media types to deserializing functions.
+
+        If your endpoints make use of content types beyond ``application/json``,
+        you must add them to this dictionary with a deserializing method that
+        converts the raw body (as ``bytes`` or ``str``) to Python objects.
+
+        """
+        return dict()
 
     async def prepare(self) -> None:
+        """Called at the beginning of a request before *get/post/etc*.
+
+        Performs OpenAPI validation of the incoming request. Problems
+        encountered while validating the request are translated to HTTP error
+        codes:
+
+        +--------------------------+----------+----------------------------------------+
+        |OpenAPI Errors            |Error Code|Description                             |
+        +--------------------------+----------+----------------------------------------+
+        |``PathNotFound``          |``404``   |Could not find the path for this request|
+        |                          |          |in the OpenAPI specification.           |
+        +--------------------------+----------+----------------------------------------+
+        |``OperationNotFound``     |``405``   |Could not find the operation specified  |
+        |                          |          |for this request in the OpenAPI         |
+        |                          |          |specification.                          |
+        +--------------------------+----------+----------------------------------------+
+        |``DeserializeError``,     |``400``   |The message body could not be decoded or|
+        |``ValidateError``         |          |did not validate against the specified  |
+        |                          |          |schema.                                 |
+        +--------------------------+----------+----------------------------------------+
+        |``InvalidSecurity``       |``401``   |Required authorization was missing from |
+        |                          |          |the request.                            |
+        +--------------------------+----------+----------------------------------------+
+        |``InvalidContentType``    |``415``   |The content type of the request did not |
+        |                          |          |match any of the types in the OpenAPI   |
+        |                          |          |specification.                          |
+        +--------------------------+----------+----------------------------------------+
+        |Any other ``OpenAPIError``|``500``   |An unexpected error occurred.           |
+        +--------------------------+----------+----------------------------------------+
+
+        To provide content in these error requests, you may override
+        :meth:`on_openapi_error`.
+
+        """
         maybe_coro = super().prepare()
         if maybe_coro and asyncio.iscoroutine(maybe_coro):  # pragma: no cover
             await maybe_coro
@@ -52,5 +104,11 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         self.validated = result
 
     def on_openapi_error(self, status_code: int, error: OpenAPIError) -> None:
+        """Sets an HTTP status code and finishes the request.
+
+        By default, no content is returned. To provide more informative
+        responses, you may override this method.
+
+        """
         self.set_status(status_code)
         self.finish()
