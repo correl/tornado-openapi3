@@ -1,7 +1,7 @@
 from typing import Any
 
-import tornado.httpclient
-import tornado.testing
+import tornado.httpclient  # type: ignore
+import tornado.testing  # type: ignore
 
 from openapi_core import create_spec  # type: ignore
 from tornado_openapi3.responses import ResponseValidator

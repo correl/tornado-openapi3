@@ -1,6 +1,7 @@
 import json
+
 from openapi_core.schema.responses.exceptions import InvalidResponse  # type: ignore
-import tornado.web
+import tornado.web  # type: ignore
 
 from tornado_openapi3.handler import OpenAPIRequestHandler
 from tornado_openapi3.testing import AsyncOpenAPITestCase

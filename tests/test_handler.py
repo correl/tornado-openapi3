@@ -2,9 +2,9 @@ import json
 import unittest.mock
 
 from openapi_core.exceptions import OpenAPIError  # type: ignore
-import tornado.httpclient
-import tornado.web
-import tornado.testing
+import tornado.httpclient  # type: ignore
+import tornado.web  # type: ignore
+import tornado.testing  # type: ignore
 
 from tornado_openapi3.handler import OpenAPIRequestHandler
 
