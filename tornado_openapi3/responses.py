@@ -11,6 +11,7 @@ from .util import parse_mimetype
 
 class TornadoResponseFactory:
     """Factory for converting Tornado responses to OpenAPI response objects."""
+
     @classmethod
     def create(cls, response: HTTPResponse) -> OpenAPIResponse:
         """Creates an OpenAPI response from Tornado response objects."""
@@ -24,6 +25,7 @@ class TornadoResponseFactory:
 
 class ResponseValidator(validators.ResponseValidator):
     """Validator for Tornado HTTP Responses."""
+
     def validate(self, response: HTTPResponse) -> ResponseValidationResult:
         """Validate a Tornado HTTP response object."""
         return super().validate(

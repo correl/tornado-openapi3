@@ -17,6 +17,7 @@ from .util import parse_mimetype
 
 class TornadoRequestFactory:
     """Factory for converting Tornado requests to OpenAPI request objects."""
+
     @classmethod
     def create(cls, request: Union[HTTPRequest, HTTPServerRequest]) -> OpenAPIRequest:
         """Creates an OpenAPI request from Tornado request objects.
@@ -63,6 +64,7 @@ class TornadoRequestFactory:
 
 class RequestValidator(validators.RequestValidator):
     """Validator for Tornado HTTP Requests."""
+
     def validate(
         self, request: Union[HTTPRequest, HTTPServerRequest]
     ) -> RequestValidationResult:
