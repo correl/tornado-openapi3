@@ -82,27 +82,27 @@ class IncorrectResponseTests(BaseTestCase):
     spec = spec(responses={"200": {"description": "Success"}})
 
     async def get(self, handler: tornado.web.RequestHandler) -> None:
-        handler.set_status(418)
+        handler.set_status(400)
 
     def test_unexpected_response_code(self) -> None:
         with self.assertRaises(InvalidResponse) as context:
             self.fetch("/resource")
-        self.assertEqual("418", context.exception.http_status)
+        self.assertEqual("400", context.exception.http_status)
 
 
 class RaiseErrorTests(BaseTestCase):
     spec = spec(
         responses={
-            "418": {
-                "description": "I'm a teapot",
+            "500": {
+                "description": "An error has occurred.",
             }
         }
     )
 
     async def get(self, handler: tornado.web.RequestHandler) -> None:
-        handler.set_status(418)
+        handler.set_status(500)
 
     def test_fetch_throws_error_on_expected_failure(self) -> None:
         with self.assertRaises(tornado.httpclient.HTTPError) as context:
             self.fetch("/resource", raise_error=True)
-        self.assertEqual(418, context.exception.code)
+        self.assertEqual(500, context.exception.code)
