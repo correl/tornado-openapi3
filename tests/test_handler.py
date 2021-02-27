@@ -1,6 +1,7 @@
 import json
 import unittest.mock
 
+from openapi_core import create_spec  # type: ignore
 from openapi_core.exceptions import OpenAPIError  # type: ignore
 import tornado.httpclient  # type: ignore
 import tornado.web  # type: ignore
@@ -10,56 +11,60 @@ from tornado_openapi3.handler import OpenAPIRequestHandler
 
 
 class ResourceHandler(OpenAPIRequestHandler):
-    spec = {
-        "openapi": "3.0.0",
-        "info": {
-            "title": "Test API",
-            "version": "1.0.0",
-        },
-        "components": {
-            "schemas": {
-                "resource": {
-                    "type": "object",
-                    "properties": {"name": {"type": "string"}},
-                    "required": ["name"],
+    spec = create_spec(
+        {
+            "openapi": "3.0.0",
+            "info": {
+                "title": "Test API",
+                "version": "1.0.0",
+            },
+            "components": {
+                "schemas": {
+                    "resource": {
+                        "type": "object",
+                        "properties": {"name": {"type": "string"}},
+                        "required": ["name"],
+                    },
+                },
+                "securitySchemes": {
+                    "basicAuth": {
+                        "type": "http",
+                        "scheme": "bearer",
+                    }
                 },
             },
-            "securitySchemes": {
-                "basicAuth": {
-                    "type": "http",
-                    "scheme": "bearer",
-                }
-            },
-        },
-        "security": [{"basicAuth": []}],
-        "paths": {
-            "/resource": {
-                "post": {
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/vnd.example.resource+json": {
-                                "schema": {"$ref": "#/components/schemas/resource"},
-                            }
-                        },
-                    },
-                    "responses": {
-                        "200": {
-                            "description": "Success",
+            "security": [{"basicAuth": []}],
+            "paths": {
+                "/resource": {
+                    "post": {
+                        "requestBody": {
+                            "required": True,
                             "content": {
                                 "application/vnd.example.resource+json": {
                                     "schema": {"$ref": "#/components/schemas/resource"},
                                 }
                             },
                         },
-                        "401": {
-                            "description": "Missing or invalid credentials",
+                        "responses": {
+                            "200": {
+                                "description": "Success",
+                                "content": {
+                                    "application/vnd.example.resource+json": {
+                                        "schema": {
+                                            "$ref": "#/components/schemas/resource"
+                                        },
+                                    }
+                                },
+                            },
+                            "401": {
+                                "description": "Missing or invalid credentials",
+                            },
                         },
-                    },
+                    }
                 }
-            }
-        },
-    }
+            },
+        }
+    )
     custom_media_type_deserializers = {
         "application/vnd.example.resource+json": json.loads,
     }
@@ -73,6 +78,51 @@ class ResourceHandler(OpenAPIRequestHandler):
                 }
             )
         )
+
+
+class DefaultSchemaTest(tornado.testing.AsyncHTTPTestCase):
+    def get_app(self) -> tornado.web.Application:
+        test = self
+
+        class RequestHandler(OpenAPIRequestHandler):
+            async def prepare(self) -> None:
+                with test.assertRaises(NotImplementedError):
+                    self.spec
+
+            async def get(self) -> None:
+                ...
+
+        return tornado.web.Application(
+            [
+                (r"/", RequestHandler),
+            ]
+        )
+
+    def test_schema_must_be_implemented(self) -> None:
+        response = self.fetch("/")
+        self.assertEqual(200, response.code)
+
+
+class DefaultDeserializers(tornado.testing.AsyncHTTPTestCase):
+    def get_app(self) -> tornado.web.Application:
+        test = self
+
+        class RequestHandler(OpenAPIRequestHandler):
+            async def prepare(self) -> None:
+                test.assertEqual(dict(), self.custom_media_type_deserializers)
+
+            async def get(self) -> None:
+                ...
+
+        return tornado.web.Application(
+            [
+                (r"/", RequestHandler),
+            ]
+        )
+
+    def test_schema_must_be_implemented(self) -> None:
+        response = self.fetch("/")
+        self.assertEqual(200, response.code)
 
 
 class RequestHandlerTests(tornado.testing.AsyncHTTPTestCase):

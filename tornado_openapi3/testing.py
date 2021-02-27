@@ -3,20 +3,20 @@ from typing import Any
 import tornado.httpclient  # type: ignore
 import tornado.testing  # type: ignore
 
-from openapi_core import create_spec  # type: ignore
+from openapi_core.schema.specs.models import Spec  # type: ignore
 from tornado_openapi3.responses import ResponseValidator
 
 
 class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
     @property
-    def spec(self) -> dict:
-        """The OpenAPI 3 specification as a Python dictionary.
+    def spec(self) -> Spec:
+        """The OpenAPI 3 specification.
 
         Override this in your request handlers to load or define your OpenAPI 3
         spec.
 
         """
-        return dict()
+        raise NotImplementedError()
 
     @property
     def custom_media_type_deserializers(self) -> dict:
@@ -38,7 +38,7 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         """
         super().setUp()
         self.validator = ResponseValidator(
-            create_spec(self.spec),
+            self.spec,
             custom_media_type_deserializers=self.custom_media_type_deserializers,
         )
 

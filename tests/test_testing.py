@@ -1,5 +1,6 @@
 import json
 
+from openapi_core import create_spec  # type: ignore
 from openapi_core.schema.responses.exceptions import InvalidResponse  # type: ignore
 import tornado.web  # type: ignore
 
@@ -8,29 +9,48 @@ from tornado_openapi3.testing import AsyncOpenAPITestCase
 
 
 def spec(responses: dict = dict()) -> dict:
-    return {
-        "openapi": "3.0.0",
-        "info": {
-            "title": "Test API",
-            "version": "1.0.0",
-        },
-        "components": {
-            "schemas": {
-                "resource": {
-                    "type": "object",
-                    "properties": {"name": {"type": "string"}},
-                    "required": ["name"],
+    if not responses:
+        responses = {"200": {"description": "Success"}}
+    return create_spec(
+        {
+            "openapi": "3.0.0",
+            "info": {
+                "title": "Test API",
+                "version": "1.0.0",
+            },
+            "components": {
+                "schemas": {
+                    "resource": {
+                        "type": "object",
+                        "properties": {"name": {"type": "string"}},
+                        "required": ["name"],
+                    },
                 },
             },
-        },
-        "paths": {
-            "/resource": {
-                "get": {
-                    "responses": responses,
+            "paths": {
+                "/resource": {
+                    "get": {
+                        "responses": responses,
+                    }
                 }
-            }
-        },
-    }
+            },
+        }
+    )
+
+
+class TestTestCase(AsyncOpenAPITestCase):
+    def setUp(self) -> None:
+        ...
+
+    def tearDown(self) -> None:
+        ...
+
+    def test_schema_must_be_implemented(self) -> None:
+        with self.assertRaises(NotImplementedError):
+            self.spec
+
+    def test_no_custom_media_type_deserializers(self) -> None:
+        self.assertEqual(dict(), self.custom_media_type_deserializers)
 
 
 class BaseTestCase(AsyncOpenAPITestCase):
