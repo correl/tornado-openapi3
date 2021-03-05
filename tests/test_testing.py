@@ -1,6 +1,5 @@
 import json
 
-from openapi_core import create_spec  # type: ignore
 from openapi_core.schema.responses.exceptions import InvalidResponse  # type: ignore
 import tornado.web  # type: ignore
 
@@ -11,31 +10,29 @@ from tornado_openapi3.testing import AsyncOpenAPITestCase
 def spec(responses: dict = dict()) -> dict:
     if not responses:
         responses = {"200": {"description": "Success"}}
-    return create_spec(
-        {
-            "openapi": "3.0.0",
-            "info": {
-                "title": "Test API",
-                "version": "1.0.0",
-            },
-            "components": {
-                "schemas": {
-                    "resource": {
-                        "type": "object",
-                        "properties": {"name": {"type": "string"}},
-                        "required": ["name"],
-                    },
+    return {
+        "openapi": "3.0.0",
+        "info": {
+            "title": "Test API",
+            "version": "1.0.0",
+        },
+        "components": {
+            "schemas": {
+                "resource": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
                 },
             },
-            "paths": {
-                "/resource": {
-                    "get": {
-                        "responses": responses,
-                    }
+        },
+        "paths": {
+            "/resource": {
+                "get": {
+                    "responses": responses,
                 }
-            },
-        }
-    )
+            }
+        },
+    }
 
 
 class TestTestCase(AsyncOpenAPITestCase):
@@ -54,7 +51,7 @@ class TestTestCase(AsyncOpenAPITestCase):
 
 
 class BaseTestCase(AsyncOpenAPITestCase):
-    spec = spec()
+    spec_dict = spec()
     custom_media_type_deserializers = {
         "application/vnd.example.resource+json": json.loads,
     }
@@ -76,7 +73,7 @@ class BaseTestCase(AsyncOpenAPITestCase):
 
 
 class SuccessTests(BaseTestCase):
-    spec = spec(
+    spec_dict = spec(
         responses={
             "200": {
                 "description": "Success",
@@ -99,7 +96,7 @@ class SuccessTests(BaseTestCase):
 
 
 class IncorrectResponseTests(BaseTestCase):
-    spec = spec(responses={"200": {"description": "Success"}})
+    spec_dict = spec(responses={"200": {"description": "Success"}})
 
     async def get(self, handler: tornado.web.RequestHandler) -> None:
         handler.set_status(400)
@@ -111,7 +108,7 @@ class IncorrectResponseTests(BaseTestCase):
 
 
 class RaiseErrorTests(BaseTestCase):
-    spec = spec(
+    spec_dict = spec(
         responses={
             "500": {
                 "description": "An error has occurred.",

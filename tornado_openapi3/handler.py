@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from openapi_core import create_spec  # type: ignore
 from openapi_core.exceptions import OpenAPIError  # type: ignore
 from openapi_core.deserializing.exceptions import DeserializeError  # type: ignore
 from openapi_core.schema.specs.models import Spec  # type: ignore
@@ -21,15 +22,37 @@ logger = logging.getLogger(__name__)
 
 
 class OpenAPIRequestHandler(tornado.web.RequestHandler):
+    """Base class for HTTP request handlers.
+
+    A request handler extending :py:class:`tornado.web.RequestHandler` providing
+    OpenAPI spec validation on incoming requests and translating errors into
+    appropriate HTTP responses.
+
+    """
+
     @property
-    def spec(self) -> Spec:
-        """The OpenAPI 3 specification.
+    def spec_dict(self) -> dict:
+        """The OpenAPI 3 specification
 
         Override this in your request handlers to load or define your OpenAPI 3
         spec.
 
+        :rtype: dict
+
         """
         raise NotImplementedError()
+
+    @property
+    def spec(self) -> Spec:
+        """The OpenAPI 3 specification.
+
+        Override this in your request handlers to customize how your OpenAPI 3
+        spec is loaded and validated.
+
+        :rtype: :py:class:`openapi_core.schema.specs.model.Spec`
+
+        """
+        return create_spec(self.spec_dict, validate_spec=False)
 
     @property
     def custom_media_type_deserializers(self) -> dict:

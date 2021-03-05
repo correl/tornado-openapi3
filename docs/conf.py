@@ -29,10 +29,15 @@ author = "Correl Roush"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
     "sphinx_rtd_theme",
 ]
 
-autodoc_member_order = "groupwise"
+autodoc_member_order = "bysource"
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "tornado": ("https://tornado.readthedocs.org/", None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

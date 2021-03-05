@@ -3,20 +3,42 @@ from typing import Any
 import tornado.httpclient  # type: ignore
 import tornado.testing  # type: ignore
 
+from openapi_core import create_spec  # type: ignore
 from openapi_core.schema.specs.models import Spec  # type: ignore
 from tornado_openapi3.responses import ResponseValidator
 
 
 class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
+    """A test case that starts up an HTTP server.
+
+    An async test case extending :py:class:`tornado.testing.AsyncHTTPTestCase`,
+    providing OpenAPI spec validation on the responses from your application and
+    raising errors in tests.
+
+    """
+
+    @property
+    def spec_dict(self) -> dict:
+        """The OpenAPI 3 specification
+
+        Override this in your test cases to load or define your OpenAPI 3 spec.
+
+        :rtype: dict
+
+        """
+        raise NotImplementedError()
+
     @property
     def spec(self) -> Spec:
         """The OpenAPI 3 specification.
 
-        Override this in your request handlers to load or define your OpenAPI 3
-        spec.
+        Override this in your test cases to customize how your OpenAPI 3 spec is
+        loaded and validated.
+
+        :rtype: :py:class:`openapi_core.schema.specs.model.Spec`
 
         """
-        raise NotImplementedError()
+        return create_spec(self.spec_dict)
 
     @property
     def custom_media_type_deserializers(self) -> dict:
