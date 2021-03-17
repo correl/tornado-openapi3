@@ -2,11 +2,18 @@ import asyncio
 import logging
 
 from openapi_core import create_spec  # type: ignore
+from openapi_core.casting.schemas.exceptions import CastError  # type: ignore
 from openapi_core.exceptions import OpenAPIError  # type: ignore
 from openapi_core.deserializing.exceptions import DeserializeError  # type: ignore
 from openapi_core.schema.specs.models import Spec  # type: ignore
 from openapi_core.schema.media_types.exceptions import (  # type: ignore
     InvalidContentType,
+)
+from openapi_core.schema.parameters.exceptions import (  # type: ignore
+    MissingRequiredParameter,
+)
+from openapi_core.schema.request_bodies.exceptions import (  # type: ignore
+    MissingRequestBody,
 )
 from openapi_core.templating.paths.exceptions import (  # type: ignore
     OperationNotFound,
@@ -72,29 +79,31 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         encountered while validating the request are translated to HTTP error
         codes:
 
-        +--------------------------+----------+----------------------------------------+
-        |OpenAPI Errors            |Error Code|Description                             |
-        +--------------------------+----------+----------------------------------------+
-        |``PathNotFound``          |``404``   |Could not find the path for this request|
-        |                          |          |in the OpenAPI specification.           |
-        +--------------------------+----------+----------------------------------------+
-        |``OperationNotFound``     |``405``   |Could not find the operation specified  |
-        |                          |          |for this request in the OpenAPI         |
-        |                          |          |specification.                          |
-        +--------------------------+----------+----------------------------------------+
-        |``DeserializeError``,     |``400``   |The message body could not be decoded or|
-        |``ValidateError``         |          |did not validate against the specified  |
-        |                          |          |schema.                                 |
-        +--------------------------+----------+----------------------------------------+
-        |``InvalidSecurity``       |``401``   |Required authorization was missing from |
-        |                          |          |the request.                            |
-        +--------------------------+----------+----------------------------------------+
-        |``InvalidContentType``    |``415``   |The content type of the request did not |
-        |                          |          |match any of the types in the OpenAPI   |
-        |                          |          |specification.                          |
-        +--------------------------+----------+----------------------------------------+
-        |Any other ``OpenAPIError``|``500``   |An unexpected error occurred.           |
-        +--------------------------+----------+----------------------------------------+
+        +-----------------------------+----------+----------------------------------------+
+        |OpenAPI Errors               |Error Code|Description                             |
+        +-----------------------------+----------+----------------------------------------+
+        |``PathNotFound``             |``404``   |Could not find the path for this request|
+        |                             |          |in the OpenAPI specification.           |
+        +-----------------------------+----------+----------------------------------------+
+        |``OperationNotFound``        |``405``   |Could not find the operation specified  |
+        |                             |          |for this request in the OpenAPI         |
+        |                             |          |specification.                          |
+        +-----------------------------+----------+----------------------------------------+
+        |``CastError``,               |``400``   |The message body could not be decoded or|
+        |``DeserializeError``,        |          |did not validate against the specified  |
+        |``MissingRequiredParameter``,|          |schema.                                 |
+        |``MissingRequestBody``,      |          |                                        |
+        |``ValidateError``            |          |                                        |
+        +-----------------------------+----------+----------------------------------------+
+        |``InvalidSecurity``          |``401``   |Required authorization was missing from |
+        |                             |          |the request.                            |
+        +-----------------------------+----------+----------------------------------------+
+        |``InvalidContentType``       |``415``   |The content type of the request did not |
+        |                             |          |match any of the types in the OpenAPI   |
+        |                             |          |specification.                          |
+        +-----------------------------+----------+----------------------------------------+
+        |Any other ``OpenAPIError``   |``500``   |An unexpected error occurred.           |
+        +-----------------------------+----------+----------------------------------------+
 
         To provide content in these error requests, you may override
         :meth:`on_openapi_error`.
@@ -115,7 +124,13 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
             self.on_openapi_error(404, e)
         except OperationNotFound as e:
             self.on_openapi_error(405, e)
-        except (DeserializeError, ValidateError) as e:
+        except (
+            CastError,
+            DeserializeError,
+            MissingRequiredParameter,
+            MissingRequestBody,
+            ValidateError,
+        ) as e:
             self.on_openapi_error(400, e)
         except InvalidSecurity as e:
             self.on_openapi_error(401, e)
