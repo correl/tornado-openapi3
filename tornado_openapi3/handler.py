@@ -79,31 +79,31 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         encountered while validating the request are translated to HTTP error
         codes:
 
-        +-----------------------------+----------+----------------------------------------+
-        |OpenAPI Errors               |Error Code|Description                             |
-        +-----------------------------+----------+----------------------------------------+
-        |``PathNotFound``             |``404``   |Could not find the path for this request|
-        |                             |          |in the OpenAPI specification.           |
-        +-----------------------------+----------+----------------------------------------+
-        |``OperationNotFound``        |``405``   |Could not find the operation specified  |
-        |                             |          |for this request in the OpenAPI         |
-        |                             |          |specification.                          |
-        +-----------------------------+----------+----------------------------------------+
-        |``CastError``,               |``400``   |The message body could not be decoded or|
-        |``DeserializeError``,        |          |did not validate against the specified  |
-        |``MissingRequiredParameter``,|          |schema.                                 |
-        |``MissingRequestBody``,      |          |                                        |
-        |``ValidateError``            |          |                                        |
-        +-----------------------------+----------+----------------------------------------+
-        |``InvalidSecurity``          |``401``   |Required authorization was missing from |
-        |                             |          |the request.                            |
-        +-----------------------------+----------+----------------------------------------+
-        |``InvalidContentType``       |``415``   |The content type of the request did not |
-        |                             |          |match any of the types in the OpenAPI   |
-        |                             |          |specification.                          |
-        +-----------------------------+----------+----------------------------------------+
-        |Any other ``OpenAPIError``   |``500``   |An unexpected error occurred.           |
-        +-----------------------------+----------+----------------------------------------+
+        +-----------------------------+----------+-------------------------------------+
+        |OpenAPI Errors               |Error Code|Description                          |
+        +-----------------------------+----------+-------------------------------------+
+        |``PathNotFound``             |``404``   |Could not find the path for this     |
+        |                             |          |request in the OpenAPI specification.|
+        +-----------------------------+----------+-------------------------------------+
+        |``OperationNotFound``        |``405``   |Could not find the operation         |
+        |                             |          |specified for this request in the    |
+        |                             |          |OpenAPI specification.               |
+        +-----------------------------+----------+-------------------------------------+
+        |``CastError``,               |``400``   |The message body could not be decoded|
+        |``DeserializeError``,        |          |or did not validate against the      |
+        |``MissingRequiredParameter``,|          |specified schema.                    |
+        |``MissingRequestBody``,      |          |                                     |
+        |``ValidateError``            |          |                                     |
+        +-----------------------------+----------+-------------------------------------+
+        |``InvalidSecurity``          |``401``   |Required authorization was missing   |
+        |                             |          |from the request.                    |
+        +-----------------------------+----------+-------------------------------------+
+        |``InvalidContentType``       |``415``   |The content type of the request did  |
+        |                             |          |not match any of the types in the    |
+        |                             |          |OpenAPI specification.               |
+        +-----------------------------+----------+-------------------------------------+
+        |Any other ``OpenAPIError``   |``500``   |An unexpected error occurred.        |
+        +-----------------------------+----------+-------------------------------------+
 
         To provide content in these error requests, you may override
         :meth:`on_openapi_error`.
