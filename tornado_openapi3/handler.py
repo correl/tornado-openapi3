@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import typing
 
 from openapi_core import create_spec  # type: ignore
 from openapi_core.casting.schemas.exceptions import CastError  # type: ignore
@@ -24,6 +25,7 @@ from openapi_core.validation.exceptions import InvalidSecurity  # type: ignore
 import tornado.web  # type: ignore
 
 from tornado_openapi3.requests import RequestValidator
+from tornado_openapi3.types import Deserializer, Formatter
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +64,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         return create_spec(self.spec_dict, validate_spec=False)
 
     @property
-    def custom_formatters(self) -> dict:
+    def custom_formatters(self) -> typing.Mapping[str, Formatter]:
         """A dictionary mapping value formats to formatter objects.
 
         A formatter object must provide:
@@ -73,7 +75,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         return dict()
 
     @property
-    def custom_media_type_deserializers(self) -> dict:
+    def custom_media_type_deserializers(self) -> typing.Mapping[str, Deserializer]:
         """A dictionary mapping media types to deserializing functions.
 
         If your endpoints make use of content types beyond ``application/json``,
