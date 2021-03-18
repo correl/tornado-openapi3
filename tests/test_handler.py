@@ -1,4 +1,6 @@
+import datetime
 import json
+import re
 import unittest.mock
 
 from openapi_core.exceptions import OpenAPIError  # type: ignore
@@ -7,6 +9,14 @@ import tornado.web  # type: ignore
 import tornado.testing  # type: ignore
 
 from tornado_openapi3.handler import OpenAPIRequestHandler
+
+
+class USDateFormatter:
+    def validate(self, value: str) -> bool:
+        return bool(re.match(r"^\d{1,2}/\d{1,2}/\d{4}$", value))
+
+    def unmarshal(self, value: str) -> datetime.date:
+        return datetime.datetime.strptime(value, "%m/%d/%Y").date()
 
 
 class ResourceHandler(OpenAPIRequestHandler):
@@ -20,7 +30,10 @@ class ResourceHandler(OpenAPIRequestHandler):
             "schemas": {
                 "resource": {
                     "type": "object",
-                    "properties": {"name": {"type": "string"}},
+                    "properties": {
+                        "name": {"type": "string"},
+                        "date": {"type": "string", "format": "usdate"},
+                    },
                     "required": ["name"],
                 },
             },
@@ -60,6 +73,11 @@ class ResourceHandler(OpenAPIRequestHandler):
             }
         },
     }
+
+    custom_formatters = {
+        "usdate": USDateFormatter(),
+    }
+
     custom_media_type_deserializers = {
         "application/vnd.example.resource+json": json.loads,
     }
@@ -83,6 +101,28 @@ class DefaultSchemaTest(tornado.testing.AsyncHTTPTestCase):
             async def prepare(self) -> None:
                 with test.assertRaises(NotImplementedError):
                     self.spec
+
+            async def get(self) -> None:
+                ...
+
+        return tornado.web.Application(
+            [
+                (r"/", RequestHandler),
+            ]
+        )
+
+    def test_schema_must_be_implemented(self) -> None:
+        response = self.fetch("/")
+        self.assertEqual(200, response.code)
+
+
+class DefaultFormatters(tornado.testing.AsyncHTTPTestCase):
+    def get_app(self) -> tornado.web.Application:
+        test = self
+
+        class RequestHandler(OpenAPIRequestHandler):
+            async def prepare(self) -> None:
+                test.assertEqual(dict(), self.custom_formatters)
 
             async def get(self) -> None:
                 ...
@@ -192,6 +232,18 @@ class RequestHandlerTests(tornado.testing.AsyncHTTPTestCase):
         )
         self.assertEqual(404, response.code)
 
+    def test_format_error(self) -> None:
+        response = self.fetch(
+            "/resource",
+            method="POST",
+            headers={
+                "Authorization": "Bearer secret",
+                "Content-Type": "application/vnd.example.resource+json",
+            },
+            body=json.dumps({"name": "Name", "date": "2020.01.01"}),
+        )
+        self.assertEqual(400, response.code)
+
     def test_unexpected_openapi_error(self) -> None:
         with unittest.mock.patch(
             "openapi_core.validation.datatypes.BaseValidationResult.raise_for_errors",
@@ -216,6 +268,6 @@ class RequestHandlerTests(tornado.testing.AsyncHTTPTestCase):
                 "Authorization": "Bearer secret",
                 "Content-Type": "application/vnd.example.resource+json",
             },
-            body=json.dumps({"name": "Name"}),
+            body=json.dumps({"name": "Name", "date": "01/01/2020"}),
         )
         self.assertEqual(200, response.code)

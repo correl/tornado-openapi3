@@ -62,6 +62,17 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         return create_spec(self.spec_dict, validate_spec=False)
 
     @property
+    def custom_formatters(self) -> dict:
+        """A dictionary mapping value formats to formatter objects.
+
+        A formatter object must provide:
+        - validate(self, value) -> bool
+        - unmarshal(self, value) -> Any
+        """
+
+        return dict()
+
+    @property
     def custom_media_type_deserializers(self) -> dict:
         """A dictionary mapping media types to deserializing functions.
 
@@ -115,6 +126,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
 
         validator = RequestValidator(
             self.spec,
+            custom_formatters=self.custom_formatters,
             custom_media_type_deserializers=self.custom_media_type_deserializers,
         )
         result = validator.validate(self.request)
