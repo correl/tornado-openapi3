@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import typing
+from typing import Mapping
 
 from openapi_core import create_spec  # type: ignore
 from openapi_core.casting.schemas.exceptions import CastError  # type: ignore
@@ -64,24 +64,28 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         return create_spec(self.spec_dict, validate_spec=False)
 
     @property
-    def custom_formatters(self) -> typing.Mapping[str, Formatter]:
+    def custom_formatters(self) -> Mapping[str, Formatter]:
         """A dictionary mapping value formats to formatter objects.
 
-        A formatter object must provide:
-        - validate(self, value) -> bool
-        - unmarshal(self, value) -> Any
+        If your schemas make use of format modifiers, you may specify them in
+        this dictionary paired with a Formatter object that provides methods to
+        validate values and unmarshal them into Python objects.
+
+        :rtype: Mapping[str, :py:class:`tornado_openapi3.types.Formatter`]
+
         """
 
         return dict()
 
     @property
-    def custom_media_type_deserializers(self) -> typing.Mapping[str, Deserializer]:
+    def custom_media_type_deserializers(self) -> Mapping[str, Deserializer]:
         """A dictionary mapping media types to deserializing functions.
 
         If your endpoints make use of content types beyond ``application/json``,
         you must add them to this dictionary with a deserializing method that
         converts the raw body (as ``bytes`` or ``str``) to Python objects.
 
+        :rtype: Mapping[str, :py:attr:`tornado_openapi3.types.Deserializer`]
         """
         return dict()
 

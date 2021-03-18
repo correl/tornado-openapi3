@@ -30,14 +30,18 @@ specification.
    :maxdepth: 2
    :caption: Usage
 
-   handler
-   testing
+   handling_incoming_requests
+   testing_api_responses
 
 .. toctree::
    :maxdepth: 2
-   :caption: Validators
+   :caption: Modules
 
-   validators
+   handler
+   testing
+   requests
+   responses
+   types
 
 
 Indices and tables

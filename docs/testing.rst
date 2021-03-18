@@ -1,5 +1,5 @@
-Testing API Responses
-=====================
+Testing
+=======
 
 .. automodule:: tornado_openapi3.testing
    :members:
