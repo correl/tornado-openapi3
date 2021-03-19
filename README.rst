@@ -6,6 +6,8 @@
     :target: https://travis-ci.com/correl/tornado-openapi3
 .. image:: https://codecov.io/gh/correl/tornado-openapi3/branch/master/graph/badge.svg?token=CTYWWDXTL9
     :target: https://codecov.io/gh/correl/tornado-openapi3
+.. image:: https://readthedocs.org/projects/tornado-openapi3/badge/
+    :target: https://tornado-openapi3.readthedocs.io
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
@@ -16,6 +18,8 @@ Provides integration between the `Tornado`_ web framework and `Openapi-core`_
 library for validating request and response objects against an `OpenAPI 3`_
 specification.
 
+Full documentation is available at https://tornado-openapi3.readthedocs.io
+
 Usage
 =====
 
@@ -24,58 +28,99 @@ Adding validation to request handlers
 
 .. code:: python
 
-    from openapi_core import create_spec  # type: ignore
-    from openapi_core.exceptions import OpenAPIError  # type: ignore
-    from openapi_core.deserializing.exceptions import DeserializeError  # type: ignore
-    from openapi_core.schema.media_types.exceptions import (  # type: ignore
-        InvalidContentType,
-    )
-    from openapi_core.unmarshalling.schemas.exceptions import ValidateError  # type: ignore
-    from tornado.web import RequestHandler
-    from tornado_openapi3 import RequestValidator
-    import yaml
+   import tornado.ioloop
+   import tornado.web
+   from tornado_openapi3.handler import OpenAPIRequestHandler
 
 
-    class OpenAPIRequestHandler(RequestHandler):
-        async def prepare(self) -> None:
-            maybe_coro = super().prepare()
-            if maybe_coro and asyncio.iscoroutine(maybe_coro):  # pragma: no cover
-                await maybe_coro
+   class MyRequestHandler(OpenAPIRequestHandler):
+       spec_dict = {
+           "openapi": "3.0.0",
+           "info": {
+               "title": "Simple Example",
+               "version": "1.0.0",
+           },
+           "paths": {
+               "/": {
+                   "get": {
+                       "responses": {
+                           "200": {
+                               "description": "Index",
+                               "content": {
+                                   "text/html": {
+                                       "schema": {"type": "string"},
+                                   }
+                               },
+                           }
+                       }
+                   }
+               }
+           },
+       }
 
-            spec = create_spec(yaml.safe_load(self.render_string("openapi.yaml")))
-            validator = RequestValidator(spec)
-            result = validator.validate(self.request)
-            try:
-                result.raise_for_errors()
-            except InvalidContentType:
-                self.set_status(415)
-                self.finish()
-            except (DeserializeError, ValidateError) as e:
-                self.set_status(400)
-                self.finish()
-            except OpenAPIError:
-                raise
 
-Validating a response
----------------------
+   class RootHandler(MyRequestHandler):
+       async def get(self):
+           self.finish("Hello, World!")
+
+
+   if __name__ == "__main__":
+       app = tornado.web.Application([(r"/", RootHandler)])
+       app.listen(8888)
+       tornado.ioloop.IOLoop.current().start()
+
+Validating responses in tests
+-----------------------------
 
 .. code:: python
 
-    from tornado.testing import AsyncHTTPTestCase
-    from tornado_openapi3 import ResponseValidator
+   import unittest
 
-    from myapplication import create_app, spec
+   import tornado.web
+   from tornado_openapi3.testing import AsyncOpenAPITestCase
 
 
-    class TestResponses(AsyncHTTPTestCase):
-        def get_app(self) -> Application:
-            return create_app()
+   class RootHandler(tornado.web.RequestHandler):
+       async def get(self):
+           self.finish("Hello, World!")
 
-        def test_status(self) -> None:
-            validator = ResponseValidator(spec)
-            response = self.fetch("/status")
-            result = validator.validate(response)
-            result.raise_for_errors()
+
+   class BaseTestCase(AsyncOpenAPITestCase):
+       spec_dict = {
+           "openapi": "3.0.0",
+           "info": {
+               "title": "Simple Example",
+               "version": "1.0.0",
+           },
+           "paths": {
+               "/": {
+                   "get": {
+                       "responses": {
+                           "200": {
+                               "description": "Index",
+                               "content": {
+                                   "text/html": {
+                                       "schema": {"type": "string"},
+                                   }
+                               },
+                           }
+                       }
+                   }
+               }
+           },
+       }
+
+       def get_app(self):
+           return tornado.web.Application([(r"/", RootHandler)])
+
+       def test_root_endpoint(self):
+           response = self.fetch("/")
+           self.assertEqual(200, response.code)
+           self.assertEqual(b"Hello, World!", response.body)
+
+
+   if __name__ == "__main__":
+       unittest.main()
 
 Contributing
 ============
