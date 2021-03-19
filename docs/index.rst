@@ -21,20 +21,20 @@ library for validating request and response objects against an `OpenAPI 3`_
 specification.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Getting Started
 
    installation
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Usage
 
    handling_incoming_requests
    testing_api_responses
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Modules
 
    handler

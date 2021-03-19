@@ -11,7 +11,7 @@ from tornado_openapi3.responses import ResponseValidator
 class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
     """A test case that starts up an HTTP server.
 
-    An async test case extending :py:class:`tornado.testing.AsyncHTTPTestCase`,
+    An async test case extending :class:`tornado.testing.AsyncHTTPTestCase`,
     providing OpenAPI spec validation on the responses from your application and
     raising errors in tests.
 
@@ -35,7 +35,7 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         Override this in your test cases to customize how your OpenAPI 3 spec is
         loaded and validated.
 
-        :rtype: :py:class:`openapi_core.schema.specs.model.Spec`
+        :rtype: :class:`openapi_core.schema.specs.model.Spec`
 
         """
         return create_spec(self.spec_dict)
@@ -65,7 +65,7 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
     def setUp(self) -> None:
         """Hook method for setting up the test fixture before exercising it.
 
-        Instantiates the :class:`tornado_openapi3.responses.ResponseValidator`
+        Instantiates the :class:`~tornado_openapi3.responses.ResponseValidator`
         for this test case.
 
         """

@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class OpenAPIRequestHandler(tornado.web.RequestHandler):
     """Base class for HTTP request handlers.
 
-    A request handler extending :py:class:`tornado.web.RequestHandler` providing
+    A request handler extending :class:`tornado.web.RequestHandler` providing
     OpenAPI spec validation on incoming requests and translating errors into
     appropriate HTTP responses.
 
@@ -58,7 +58,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         Override this in your request handlers to customize how your OpenAPI 3
         spec is loaded and validated.
 
-        :rtype: :py:class:`openapi_core.schema.specs.model.Spec`
+        :rtype: :class:`openapi_core.schema.specs.model.Spec`
 
         """
         return create_spec(self.spec_dict, validate_spec=False)
@@ -71,7 +71,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         this dictionary paired with a Formatter object that provides methods to
         validate values and unmarshal them into Python objects.
 
-        :rtype: Mapping[str, :py:class:`tornado_openapi3.types.Formatter`]
+        :rtype: Mapping[str, :class:`~tornado_openapi3.types.Formatter`]
 
         """
 
@@ -85,7 +85,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         you must add them to this dictionary with a deserializing method that
         converts the raw body (as ``bytes`` or ``str``) to Python objects.
 
-        :rtype: Mapping[str, :py:attr:`tornado_openapi3.types.Deserializer`]
+        :rtype: Mapping[str, :attr:`~tornado_openapi3.types.Deserializer`]
         """
         return dict()
 
