@@ -87,7 +87,13 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         fails, an :class:`openapi_core.exceptions.OpenAPIError` will be raised
         describing the failure.
 
+        If the path begins with http:// or https://, it will be treated as a
+        full URL and will be fetched as-is, and no validation will occur.
+
         """
+        if path.lower().startswith(("http://", "https://")):
+            return super().fetch(path, raise_error=raise_error, **kwargs)
+
         response = super().fetch(path, raise_error=False, **kwargs)
         result = self.validator.validate(response)
         result.raise_for_errors()

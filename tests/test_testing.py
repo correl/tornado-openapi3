@@ -106,6 +106,9 @@ class IncorrectResponseTests(BaseTestCase):
             self.fetch("/resource")
         self.assertEqual("400", context.exception.http_status)
 
+    def test_errors_not_raised_when_using_absolute_url(self) -> None:
+        self.fetch(self.get_url("/resource"))
+
 
 class RaiseErrorTests(BaseTestCase):
     spec_dict = spec(
