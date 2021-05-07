@@ -4,7 +4,7 @@ import tornado.httpclient  # type: ignore
 import tornado.testing  # type: ignore
 
 from openapi_core import create_spec  # type: ignore
-from openapi_core.schema.specs.models import Spec  # type: ignore
+from openapi_core.spec.paths import SpecPath  # type: ignore
 from tornado_openapi3.responses import ResponseValidator
 
 
@@ -29,7 +29,7 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         raise NotImplementedError()
 
     @property
-    def spec(self) -> Spec:
+    def spec(self) -> SpecPath:
         """The OpenAPI 3 specification.
 
         Override this in your test cases to customize how your OpenAPI 3 spec is

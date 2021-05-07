@@ -4,15 +4,13 @@ from typing import Mapping
 
 from openapi_core import create_spec  # type: ignore
 from openapi_core.casting.schemas.exceptions import CastError  # type: ignore
-from openapi_core.exceptions import OpenAPIError  # type: ignore
-from openapi_core.deserializing.exceptions import DeserializeError  # type: ignore
-from openapi_core.schema.specs.models import Spec  # type: ignore
-from openapi_core.schema.parameters.exceptions import (  # type: ignore
-    MissingRequiredParameter,
-)
-from openapi_core.schema.request_bodies.exceptions import (  # type: ignore
+from openapi_core.exceptions import (  # type: ignore
     MissingRequestBody,
+    MissingRequiredParameter,
+    OpenAPIError,
 )
+from openapi_core.deserializing.exceptions import DeserializeError  # type: ignore
+from openapi_core.spec.paths import SpecPath  # type: ignore
 from openapi_core.templating.media_types.exceptions import (  # type: ignore
     MediaTypeNotFound,
 )
@@ -52,7 +50,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         raise NotImplementedError()
 
     @property
-    def spec(self) -> Spec:
+    def spec(self) -> SpecPath:
         """The OpenAPI 3 specification.
 
         Override this in your request handlers to customize how your OpenAPI 3
