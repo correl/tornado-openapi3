@@ -7,14 +7,14 @@ from openapi_core.casting.schemas.exceptions import CastError  # type: ignore
 from openapi_core.exceptions import OpenAPIError  # type: ignore
 from openapi_core.deserializing.exceptions import DeserializeError  # type: ignore
 from openapi_core.schema.specs.models import Spec  # type: ignore
-from openapi_core.schema.media_types.exceptions import (  # type: ignore
-    InvalidContentType,
-)
 from openapi_core.schema.parameters.exceptions import (  # type: ignore
     MissingRequiredParameter,
 )
 from openapi_core.schema.request_bodies.exceptions import (  # type: ignore
     MissingRequestBody,
+)
+from openapi_core.templating.media_types.exceptions import (  # type: ignore
+    MediaTypeNotFound,
 )
 from openapi_core.templating.paths.exceptions import (  # type: ignore
     OperationNotFound,
@@ -115,7 +115,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         |``InvalidSecurity``          |``401``   |Required authorization was missing   |
         |                             |          |from the request.                    |
         +-----------------------------+----------+-------------------------------------+
-        |``InvalidContentType``       |``415``   |The content type of the request did  |
+        |``MediaTypeNotFound``        |``415``   |The content type of the request did  |
         |                             |          |not match any of the types in the    |
         |                             |          |OpenAPI specification.               |
         +-----------------------------+----------+-------------------------------------+
@@ -152,7 +152,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
             self.on_openapi_error(400, e)
         except InvalidSecurity as e:
             self.on_openapi_error(401, e)
-        except InvalidContentType as e:
+        except MediaTypeNotFound as e:
             self.on_openapi_error(415, e)
         except OpenAPIError as e:
             logger.exception("Unexpected validation failure")

@@ -1,8 +1,9 @@
 import json
 
-from openapi_core.schema.responses.exceptions import InvalidResponse  # type: ignore
+from openapi_core.templating.responses.exceptions import (  # type: ignore
+    ResponseNotFound,
+)
 import tornado.web  # type: ignore
-
 from tornado_openapi3.handler import OpenAPIRequestHandler
 from tornado_openapi3.testing import AsyncOpenAPITestCase
 
@@ -102,7 +103,7 @@ class IncorrectResponseTests(BaseTestCase):
         handler.set_status(400)
 
     def test_unexpected_response_code(self) -> None:
-        with self.assertRaises(InvalidResponse) as context:
+        with self.assertRaises(ResponseNotFound) as context:
             self.fetch("/resource")
         self.assertEqual("400", context.exception.http_status)
 
