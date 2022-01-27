@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tornado-openapi3"
-version = "1.1.0"
+version = "1.1.1"
 description = "Tornado OpenAPI 3 request and response validation library"
 authors = ["Correl Roush <correl@gmail.com>"]
 license = "MIT"
@@ -14,9 +14,9 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.7"
 tornado = "^4 || ^5 || ^6"
-openapi-core = "^0.14.0"
-ietfparse = "^1.7.0"
-typing-extensions = "^3.7.4"
+openapi-core = "^0.14.2"
+ietfparse = "^1.8.0"
+typing-extensions = "^4.0.1"
 
 [tool.poetry.dev-dependencies]
 black = { version = "*", allow-prereleases = true }
