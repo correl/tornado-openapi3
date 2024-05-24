@@ -1,27 +1,23 @@
+import unittest
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
-import unittest
 from urllib.parse import urlencode, urlparse
 
 import attr
+import hypothesis.strategies as s
 from hypothesis import given
-import hypothesis.strategies as s  # type: ignore
-from openapi_core import create_spec  # type: ignore
-from openapi_core.exceptions import (  # type: ignore
-    MissingRequiredParameter,
-    OpenAPIError,
-)
-from openapi_core.validation.request.datatypes import (  # type: ignore
-    RequestParameters,
-    OpenAPIRequest,
-)
-from tornado.httpclient import HTTPRequest  # type: ignore
-from tornado.httputil import HTTPHeaders, HTTPServerRequest  # type: ignore
-from tornado.testing import AsyncHTTPTestCase  # type: ignore
-from tornado.web import Application, RequestHandler  # type: ignore
+from jsonschema_path import SchemaPath
+from openapi_core.exceptions import OpenAPIError
+from openapi_core.validation.request.datatypes import RequestParameters
+from openapi_core.validation.request.exceptions import MissingRequiredParameter
+from tornado.httpclient import HTTPRequest
+from tornado.httputil import HTTPHeaders, HTTPServerRequest
+from tornado.testing import AsyncHTTPTestCase
+from tornado.web import Application, RequestHandler
 from werkzeug.datastructures import ImmutableMultiDict
 
 from tornado_openapi3 import RequestValidator, TornadoRequestFactory
+from tornado_openapi3.requests import Request
 
 
 @dataclass
@@ -95,12 +91,12 @@ class TestRequestFactory(unittest.TestCase):
         url, parameters = opts
         request_url = f"{url}?{urlencode(parameters)}" if url else ""
         tornado_request = HTTPRequest(method="GET", url=request_url)
-        expected = OpenAPIRequest(
+        expected = Request(
             full_url_pattern=url,
             method="get",
             parameters=RequestParameters(query=ImmutableMultiDict(parameters)),
             body=b"",
-            mimetype="application/x-www-form-urlencoded",
+            content_type="application/x-www-form-urlencoded",
         )
         openapi_request = TornadoRequestFactory.create(tornado_request)
         self.assertEqual(attr.asdict(expected), attr.asdict(openapi_request))
@@ -121,14 +117,14 @@ class TestRequestFactory(unittest.TestCase):
         )
         tornado_request.protocol = parsed.scheme
         tornado_request.host = parsed.netloc.split(":")[0]
-        expected = OpenAPIRequest(
+        expected = Request(
             full_url_pattern=url,
             method="get",
             parameters=RequestParameters(
                 query=ImmutableMultiDict(parameters), path={}, cookie={}
             ),
             body=b"",
-            mimetype="application/x-www-form-urlencoded",
+            content_type="application/x-www-form-urlencoded",
         )
         openapi_request = TornadoRequestFactory.create(tornado_request)
         self.assertEqual(attr.asdict(expected), attr.asdict(openapi_request))
@@ -151,7 +147,7 @@ class TestRequest(AsyncHTTPTestCase):
 
     @given(parameters())
     def test_simple_request(self, parameters: Parameters) -> None:
-        spec = create_spec(
+        spec = SchemaPath.from_dict(
             {
                 "openapi": "3.0.0",
                 "info": {"title": "Test specification", "version": "0.1"},
@@ -171,14 +167,13 @@ class TestRequest(AsyncHTTPTestCase):
             headers=HTTPHeaders(parameters.headers),
         )
         assert self.request is not None
-        result = validator.validate(self.request)
-        result.raise_for_errors()
+        validator.validate(self.request)
 
     @given(parameters(min_headers=1) | parameters(min_query_parameters=1))
     def test_simple_request_fails_without_parameters(
         self, parameters: Parameters
     ) -> None:
-        spec = create_spec(
+        spec = SchemaPath.from_dict(
             {
                 "openapi": "3.0.0",
                 "info": {"title": "Test specification", "version": "0.1"},
@@ -195,12 +190,11 @@ class TestRequest(AsyncHTTPTestCase):
         validator = RequestValidator(spec)
         self.fetch("/")
         assert self.request is not None
-        result = validator.validate(self.request)
         with self.assertRaises(MissingRequiredParameter):
-            result.raise_for_errors()
+            validator.validate(self.request)
 
     def test_url_parameters(self) -> None:
-        spec = create_spec(
+        spec = SchemaPath.from_dict(
             {
                 "openapi": "3.0.0",
                 "info": {"title": "Test specification", "version": "0.1"},
@@ -224,11 +218,10 @@ class TestRequest(AsyncHTTPTestCase):
         validator = RequestValidator(spec)
         self.fetch("/1234")
         assert self.request is not None
-        result = validator.validate(self.request)
-        result.raise_for_errors()
+        validator.validate(self.request)
 
     def test_bad_url_parameters(self) -> None:
-        spec = create_spec(
+        spec = SchemaPath.from_dict(
             {
                 "openapi": "3.0.0",
                 "info": {"title": "Test specification", "version": "0.1"},
@@ -252,6 +245,5 @@ class TestRequest(AsyncHTTPTestCase):
         validator = RequestValidator(spec)
         self.fetch("/abcd")
         assert self.request is not None
-        result = validator.validate(self.request)
         with self.assertRaises(OpenAPIError):
-            result.raise_for_errors()
+            validator.validate(self.request)

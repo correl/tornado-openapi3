@@ -3,8 +3,7 @@ from typing import Any
 import tornado.httpclient  # type: ignore
 import tornado.testing  # type: ignore
 
-from openapi_core import create_spec  # type: ignore
-from openapi_core.spec.paths import SpecPath  # type: ignore
+from jsonschema_path import SchemaPath
 from tornado_openapi3.responses import ResponseValidator
 
 
@@ -29,16 +28,13 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         raise NotImplementedError()
 
     @property
-    def spec(self) -> SpecPath:
+    def spec(self) -> SchemaPath:
         """The OpenAPI 3 specification.
 
         Override this in your test cases to customize how your OpenAPI 3 spec is
         loaded and validated.
-
-        :rtype: :class:`openapi_core.schema.specs.model.Spec`
-
         """
-        return create_spec(self.spec_dict)
+        return SchemaPath.from_dict(self.spec_dict)
 
     @property
     def custom_formatters(self) -> dict:
@@ -57,7 +53,7 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
 
         If your endpoints make use of content types beyond ``application/json``,
         you must add them to this dictionary with a deserializing method that
-        converts the raw body (as ``bytes`` or ``str``) to Python objects.
+        converts the raw body (as ``bytes`` to Python objects.
 
         """
         return dict()
@@ -72,8 +68,8 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         super().setUp()
         self.validator = ResponseValidator(
             self.spec,
-            custom_formatters=self.custom_formatters,
-            custom_media_type_deserializers=self.custom_media_type_deserializers,
+            extra_format_validators={k : v.validate for k, v in self.custom_formatters.items()},
+            extra_media_type_deserializers=self.custom_media_type_deserializers
         )
 
     def fetch(
@@ -95,8 +91,7 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
             return super().fetch(path, raise_error=raise_error, **kwargs)
 
         response = super().fetch(path, raise_error=False, **kwargs)
-        result = self.validator.validate(response)
-        result.raise_for_errors()
+        self.validator.validate(response)
         if raise_error:
             response.rethrow()
         return response

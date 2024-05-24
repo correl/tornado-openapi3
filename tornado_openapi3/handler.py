@@ -2,24 +2,17 @@ import asyncio
 import logging
 from typing import Mapping
 
-from openapi_core import create_spec  # type: ignore
-from openapi_core.casting.schemas.exceptions import CastError  # type: ignore
-from openapi_core.exceptions import (  # type: ignore
-    MissingRequestBody,
-    MissingRequiredParameter,
-    OpenAPIError,
-)
-from openapi_core.deserializing.exceptions import DeserializeError  # type: ignore
-from openapi_core.spec.paths import SpecPath  # type: ignore
-from openapi_core.templating.media_types.exceptions import (  # type: ignore
-    MediaTypeNotFound,
-)
-from openapi_core.templating.paths.exceptions import (  # type: ignore
+from jsonschema_path import SchemaPath
+
+from openapi_core.exceptions import OpenAPIError
+from openapi_core.casting.schemas.exceptions import CastError
+from openapi_core.validation.request.exceptions import SecurityValidationError, RequestValidationError
+from openapi_core.deserializing.exceptions import DeserializeError
+from openapi_core.templating.media_types.exceptions import ( MediaTypeNotFound,)
+from openapi_core.templating.paths.exceptions import (
     OperationNotFound,
     PathNotFound,
 )
-from openapi_core.unmarshalling.schemas.exceptions import ValidateError  # type: ignore
-from openapi_core.validation.exceptions import InvalidSecurity  # type: ignore
 import tornado.web  # type: ignore
 
 from tornado_openapi3.requests import RequestValidator
@@ -50,7 +43,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         raise NotImplementedError()
 
     @property
-    def spec(self) -> SpecPath:
+    def spec(self) -> SchemaPath:
         """The OpenAPI 3 specification.
 
         Override this in your request handlers to customize how your OpenAPI 3
@@ -59,7 +52,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         :rtype: :class:`openapi_core.schema.specs.model.Spec`
 
         """
-        return create_spec(self.spec_dict, validate_spec=False)
+        return SchemaPath.from_dict(self.spec_dict)
 
     @property
     def custom_formatters(self) -> Mapping[str, Formatter]:
@@ -130,32 +123,30 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
 
         validator = RequestValidator(
             self.spec,
-            custom_formatters=self.custom_formatters,
-            custom_media_type_deserializers=self.custom_media_type_deserializers,
+            extra_format_validators={k: v.validate for k, v in self.custom_formatters.items()},
+            extra_media_type_deserializers=self.custom_media_type_deserializers,
         )
-        result = validator.validate(self.request)
         try:
-            result.raise_for_errors()
+            validator.validate(self.request)
         except PathNotFound as e:
             self.on_openapi_error(404, e)
         except OperationNotFound as e:
             self.on_openapi_error(405, e)
+        except SecurityValidationError as e:
+            self.on_openapi_error(401, e)
         except (
             CastError,
             DeserializeError,
-            MissingRequiredParameter,
-            MissingRequestBody,
-            ValidateError,
-        ) as e:
+        )as e:
             self.on_openapi_error(400, e)
-        except InvalidSecurity as e:
-            self.on_openapi_error(401, e)
-        except MediaTypeNotFound as e:
-            self.on_openapi_error(415, e)
+        except RequestValidationError as e:
+            if isinstance(e.__cause__, MediaTypeNotFound):
+                self.on_openapi_error(415, e)
+            else:
+                self.on_openapi_error(400, e)
         except OpenAPIError as e:
             logger.exception("Unexpected validation failure")
             self.on_openapi_error(500, e)
-        self.validated = result
 
     def on_openapi_error(self, status_code: int, error: OpenAPIError) -> None:
         """Sets an HTTP status code and finishes the request.

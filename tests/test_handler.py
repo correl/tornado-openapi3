@@ -87,10 +87,14 @@ class ResourceHandler(OpenAPIRequestHandler):
         self.finish(
             json.dumps(
                 {
-                    "name": self.validated.body["name"],
+                    "name": "nothing",
                 }
             )
         )
+
+    def on_openapi_error(self, status_code: int, error: OpenAPIError) -> None:
+        self.set_status(status_code)
+        self.finish(str(error))
 
 
 class DefaultSchemaTest(tornado.testing.AsyncHTTPTestCase):
@@ -171,7 +175,7 @@ class RequestHandlerTests(tornado.testing.AsyncHTTPTestCase):
 
     def test_invalid_operation(self) -> None:
         response = self.fetch("/resource")
-        self.assertEqual(405, response.code)
+        self.assertEqual(405, response.code, response.body)
 
     def test_bad_data(self) -> None:
         response = self.fetch(
@@ -246,7 +250,7 @@ class RequestHandlerTests(tornado.testing.AsyncHTTPTestCase):
 
     def test_unexpected_openapi_error(self) -> None:
         with unittest.mock.patch(
-            "openapi_core.validation.datatypes.BaseValidationResult.raise_for_errors",
+            "tornado_openapi3.requests.RequestValidator.validate",
             side_effect=OpenAPIError,
         ):
             response = self.fetch(

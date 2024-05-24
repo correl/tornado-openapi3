@@ -7,8 +7,7 @@ import attr
 from hypothesis import given
 import hypothesis.strategies as s
 
-from openapi_core import create_spec  # type: ignore
-from openapi_core.validation.response.datatypes import OpenAPIResponse  # type: ignore
+from jsonschema_path import SchemaPath
 from tornado.httpclient import HTTPRequest, HTTPResponse  # type: ignore
 from tornado.testing import AsyncHTTPTestCase  # type: ignore
 from tornado.web import Application, RequestHandler  # type: ignore
@@ -17,6 +16,8 @@ from tornado_openapi3 import (
     ResponseValidator,
     TornadoResponseFactory,
 )
+
+from tornado_openapi3.responses import Response
 
 
 @dataclass
@@ -65,10 +66,10 @@ class TestResponseFactory(unittest.TestCase):
     def test_response(self) -> None:
         tornado_request = HTTPRequest(url="http://example.com")
         tornado_response = HTTPResponse(request=tornado_request, code=200)
-        expected = OpenAPIResponse(
+        expected = Response(
             data=b"",
             status_code=200,
-            mimetype="text/html",
+            content_type="text/html",
         )
         openapi_response = TornadoResponseFactory.create(tornado_response)
         self.assertEqual(attr.asdict(expected), attr.asdict(openapi_response))
@@ -90,7 +91,7 @@ class TestResponse(AsyncHTTPTestCase):
 
     @given(responses())
     def test_simple_request(self, responses: Responses) -> None:
-        spec = create_spec(
+        spec = SchemaPath.from_dict(
             {
                 "openapi": "3.0.0",
                 "info": {"title": "Test specification", "version": "0.1"},
@@ -106,5 +107,4 @@ class TestResponse(AsyncHTTPTestCase):
         ResponsesHandler.responses = responses
         validator = ResponseValidator(spec)
         response = self.fetch("/")
-        result = validator.validate(response)
-        result.raise_for_errors()
+        validator.validate(response)

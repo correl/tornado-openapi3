@@ -1,32 +1,38 @@
-from openapi_core.validation.response.datatypes import (  # type: ignore
-    OpenAPIResponse,
-    ResponseValidationResult,
-)
+import attrs
+from typing import Mapping, Any, Optional
+from openapi_core.protocols import Response
 from openapi_core.validation.response import validators  # type: ignore
 from tornado.httpclient import HTTPResponse  # type: ignore
 
 from .requests import TornadoRequestFactory
-from .util import parse_mimetype
+
+
+@attrs.define
+class Response:
+    status_code: int
+    content_type: str
+    headers: Mapping[str, Any] = attrs.field(factory=dict)
+    data: Optional[bytes] = None
 
 
 class TornadoResponseFactory:
     """Factory for converting Tornado responses to OpenAPI response objects."""
 
     @classmethod
-    def create(cls, response: HTTPResponse) -> OpenAPIResponse:
+    def create(cls, response: HTTPResponse) -> Response:
         """Creates an OpenAPI response from Tornado response objects."""
-        mimetype = parse_mimetype(response.headers.get("Content-Type", "text/html"))
-        return OpenAPIResponse(
+        return Response(
             data=response.body if response.body else b"",
             status_code=response.code,
-            mimetype=mimetype,
+            content_type=response.headers.get("Content-Type", "text/html"),
+            headers=response.headers
         )
 
 
-class ResponseValidator(validators.ResponseValidator):
+class ResponseValidator(validators.V31ResponseValidator):
     """Validator for Tornado HTTP Responses."""
 
-    def validate(self, response: HTTPResponse) -> ResponseValidationResult:
+    def validate(self, response: HTTPResponse):
         """Validate a Tornado HTTP response object."""
         return super().validate(
             TornadoRequestFactory.create(response.request),
