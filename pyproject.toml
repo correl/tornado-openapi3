@@ -23,7 +23,7 @@ black = { version = "*", allow-prereleases = true }
 coverage = "*"
 mypy = "*"
 hypothesis = "*"
-flake8 = "*"
+flake8 = "<5.0.0"
 pytest = "*"
 pytest-black = "*"
 pytest-cov = "*"

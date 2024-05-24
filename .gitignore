@@ -12,5 +12,11 @@
 build
 dist
 htmlcov
-poetry.lock
 tmp/
+.envrc
+.mypy_cache/
+.pytest_cache/
+.direnv/
+.vscode/
+__pycache__/
+
