@@ -19,7 +19,7 @@ from openapi_core.templating.paths.exceptions import (
 import tornado.web  # type: ignore
 
 from tornado_openapi3.requests import RequestValidator
-from tornado_openapi3.types import Deserializer, Formatter
+from tornado_openapi3.types import Deserializer, FormatValidator
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         return SchemaPath.from_dict(self.spec_dict)
 
     @property
-    def custom_formatters(self) -> Mapping[str, Formatter]:
+    def custom_formatters(self) -> Mapping[str, FormatValidator]:
         """A dictionary mapping value formats to formatter objects.
 
         If your schemas make use of format modifiers, you may specify them in
@@ -126,9 +126,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
 
         validator = RequestValidator(
             self.spec,
-            extra_format_validators={
-                k: v.validate for k, v in self.custom_formatters.items()
-            },
+            extra_format_validators={**self.custom_formatters},
             extra_media_type_deserializers={**self.custom_media_type_deserializers},
         )
         try:

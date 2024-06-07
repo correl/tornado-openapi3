@@ -68,9 +68,7 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         super().setUp()
         self.validator = ResponseValidator(
             self.spec,
-            extra_format_validators={
-                k: v.validate for k, v in self.custom_formatters.items()
-            },
+            extra_format_validators=self.custom_formatters,
             extra_media_type_deserializers=self.custom_media_type_deserializers,
         )
 

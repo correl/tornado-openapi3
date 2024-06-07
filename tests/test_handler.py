@@ -1,4 +1,3 @@
-import datetime
 import json
 import re
 import unittest.mock
@@ -12,11 +11,8 @@ from tornado_openapi3.handler import OpenAPIRequestHandler
 
 
 class USDateFormatter:
-    def validate(self, value: str) -> bool:
+    def __call__(self, value: str) -> bool:
         return bool(re.match(r"^\d{1,2}/\d{1,2}/\d{4}$", value))
-
-    def unmarshal(self, value: str) -> datetime.date:
-        return datetime.datetime.strptime(value, "%m/%d/%Y").date()
 
 
 class ResourceHandler(OpenAPIRequestHandler):
