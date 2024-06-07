@@ -51,7 +51,7 @@ field_name = s.text(
     s.characters(
         min_codepoint=33,
         max_codepoint=126,
-        blacklist_categories=("Lu",),
+        blacklist_categories=["Lu"],
         blacklist_characters=":",
     ),
     min_size=1,

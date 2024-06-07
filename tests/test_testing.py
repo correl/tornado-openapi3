@@ -37,11 +37,9 @@ def spec(responses: dict = dict()) -> dict:
 
 
 class TestTestCase(AsyncOpenAPITestCase):
-    def setUp(self) -> None:
-        ...
+    def setUp(self) -> None: ...
 
-    def tearDown(self) -> None:
-        ...
+    def tearDown(self) -> None: ...
 
     def test_schema_must_be_implemented(self) -> None:
         with self.assertRaises(NotImplementedError):
@@ -69,8 +67,7 @@ class BaseTestCase(AsyncOpenAPITestCase):
 
         return tornado.web.Application([(r"/resource", ResourceHandler)])
 
-    async def get(self, handler: tornado.web.RequestHandler) -> None:
-        ...
+    async def get(self, handler: tornado.web.RequestHandler) -> None: ...
 
 
 class SuccessTests(BaseTestCase):

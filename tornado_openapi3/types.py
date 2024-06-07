@@ -2,7 +2,7 @@ import typing
 import typing_extensions
 
 #: A type representing an OpenAPI deserializer.
-Deserializer = typing.Callable[[typing.Union[bytes, str]], typing.Any]
+Deserializer = typing.Callable[[typing.Union[bytes]], typing.Any]
 
 
 class Formatter(typing_extensions.Protocol):

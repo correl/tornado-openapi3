@@ -92,10 +92,6 @@ class ResourceHandler(OpenAPIRequestHandler):
             )
         )
 
-    def on_openapi_error(self, status_code: int, error: OpenAPIError) -> None:
-        self.set_status(status_code)
-        self.finish(str(error))
-
 
 class DefaultSchemaTest(tornado.testing.AsyncHTTPTestCase):
     def get_app(self) -> tornado.web.Application:
@@ -106,8 +102,7 @@ class DefaultSchemaTest(tornado.testing.AsyncHTTPTestCase):
                 with test.assertRaises(NotImplementedError):
                     self.spec
 
-            async def get(self) -> None:
-                ...
+            async def get(self) -> None: ...
 
         return tornado.web.Application(
             [
@@ -128,8 +123,7 @@ class DefaultFormatters(tornado.testing.AsyncHTTPTestCase):
             async def prepare(self) -> None:
                 test.assertEqual(dict(), self.custom_formatters)
 
-            async def get(self) -> None:
-                ...
+            async def get(self) -> None: ...
 
         return tornado.web.Application(
             [
@@ -150,8 +144,7 @@ class DefaultDeserializers(tornado.testing.AsyncHTTPTestCase):
             async def prepare(self) -> None:
                 test.assertEqual(dict(), self.custom_media_type_deserializers)
 
-            async def get(self) -> None:
-                ...
+            async def get(self) -> None: ...
 
         return tornado.web.Application(
             [

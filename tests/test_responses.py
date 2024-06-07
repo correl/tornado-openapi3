@@ -43,7 +43,7 @@ def responses(draw: Callable[[Any], Any], min_headers: int = 0) -> Responses:
         s.characters(
             min_codepoint=33,
             max_codepoint=126,
-            blacklist_categories=("Lu",),
+            blacklist_categories=["Lu"],
             blacklist_characters=":",
         ),
         min_size=1,

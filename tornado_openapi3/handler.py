@@ -5,10 +5,13 @@ from typing import Mapping
 from jsonschema_path import SchemaPath
 
 from openapi_core.exceptions import OpenAPIError
-from openapi_core.casting.schemas.exceptions import CastError
-from openapi_core.validation.request.exceptions import SecurityValidationError, RequestValidationError
-from openapi_core.deserializing.exceptions import DeserializeError
-from openapi_core.templating.media_types.exceptions import ( MediaTypeNotFound,)
+from openapi_core.validation.request.exceptions import (
+    SecurityValidationError,
+    RequestValidationError,
+)
+from openapi_core.templating.media_types.exceptions import (
+    MediaTypeNotFound,
+)
 from openapi_core.templating.paths.exceptions import (
     OperationNotFound,
     PathNotFound,
@@ -123,8 +126,10 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
 
         validator = RequestValidator(
             self.spec,
-            extra_format_validators={k: v.validate for k, v in self.custom_formatters.items()},
-            extra_media_type_deserializers=self.custom_media_type_deserializers,
+            extra_format_validators={
+                k: v.validate for k, v in self.custom_formatters.items()
+            },
+            extra_media_type_deserializers={**self.custom_media_type_deserializers},
         )
         try:
             validator.validate(self.request)
@@ -134,11 +139,6 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
             self.on_openapi_error(405, e)
         except SecurityValidationError as e:
             self.on_openapi_error(401, e)
-        except (
-            CastError,
-            DeserializeError,
-        )as e:
-            self.on_openapi_error(400, e)
         except RequestValidationError as e:
             if isinstance(e.__cause__, MediaTypeNotFound):
                 self.on_openapi_error(415, e)
