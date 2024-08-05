@@ -55,7 +55,7 @@ class TornadoRequestFactory:
                 header=Headers(request.headers.get_all()),
                 cookie=parse_cookie(request.headers.get("Cookie", "")),
             ),
-            body=request.body if request.body else b"",
+            body=request.body if request.body else None,
             mimetype=parse_mimetype(
                 request.headers.get("Content-Type", "application/x-www-form-urlencoded")
             ),
