@@ -15,10 +15,10 @@ from openapi_core.validation.request.datatypes import (  # type: ignore
     RequestParameters,
     OpenAPIRequest,
 )
-from tornado.httpclient import HTTPRequest  # type: ignore
-from tornado.httputil import HTTPHeaders, HTTPServerRequest  # type: ignore
-from tornado.testing import AsyncHTTPTestCase  # type: ignore
-from tornado.web import Application, RequestHandler  # type: ignore
+from tornado.httpclient import HTTPRequest
+from tornado.httputil import HTTPHeaders, HTTPServerRequest
+from tornado.testing import AsyncHTTPTestCase
+from tornado.web import Application, RequestHandler
 from werkzeug.datastructures import ImmutableMultiDict
 
 from tornado_openapi3 import RequestValidator, TornadoRequestFactory

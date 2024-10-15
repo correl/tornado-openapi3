@@ -20,7 +20,7 @@ from openapi_core.templating.paths.exceptions import (  # type: ignore
 )
 from openapi_core.unmarshalling.schemas.exceptions import ValidateError  # type: ignore
 from openapi_core.validation.exceptions import InvalidSecurity  # type: ignore
-import tornado.web  # type: ignore
+import tornado.web
 
 from tornado_openapi3.requests import RequestValidator
 from tornado_openapi3.types import Deserializer, Formatter

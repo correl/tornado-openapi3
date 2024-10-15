@@ -12,8 +12,8 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
-tornado = "^4 || ^5 || ^6"
+python = "^3.9"
+tornado = "^5 || ^6"
 openapi-core = "^0.14.2"
 ietfparse = "^1.8.0"
 typing-extensions = "^4.0.1"
@@ -23,7 +23,7 @@ black = { version = "*", allow-prereleases = true }
 coverage = "*"
 mypy = "*"
 hypothesis = "*"
-flake8 = "*"
+flake8 = "^3.7.9"
 pytest = "*"
 pytest-black = "*"
 pytest-cov = "*"

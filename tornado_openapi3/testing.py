@@ -1,7 +1,7 @@
 from typing import Any
 
-import tornado.httpclient  # type: ignore
-import tornado.testing  # type: ignore
+import tornado.httpclient
+import tornado.testing
 
 from openapi_core import create_spec  # type: ignore
 from openapi_core.spec.paths import SpecPath  # type: ignore

@@ -9,9 +9,9 @@ import hypothesis.strategies as s
 
 from openapi_core import create_spec  # type: ignore
 from openapi_core.validation.response.datatypes import OpenAPIResponse  # type: ignore
-from tornado.httpclient import HTTPRequest, HTTPResponse  # type: ignore
-from tornado.testing import AsyncHTTPTestCase  # type: ignore
-from tornado.web import Application, RequestHandler  # type: ignore
+from tornado.httpclient import HTTPRequest, HTTPResponse
+from tornado.testing import AsyncHTTPTestCase
+from tornado.web import Application, RequestHandler
 
 from tornado_openapi3 import (
     ResponseValidator,

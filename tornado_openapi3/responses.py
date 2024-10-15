@@ -3,7 +3,7 @@ from openapi_core.validation.response.datatypes import (  # type: ignore
     ResponseValidationResult,
 )
 from openapi_core.validation.response import validators  # type: ignore
-from tornado.httpclient import HTTPResponse  # type: ignore
+from tornado.httpclient import HTTPResponse
 
 from .requests import TornadoRequestFactory
 from .util import parse_mimetype

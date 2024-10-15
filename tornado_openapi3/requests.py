@@ -8,8 +8,8 @@ from openapi_core.validation.request.datatypes import (  # type: ignore
     RequestValidationResult,
 )
 from openapi_core.validation.request import validators  # type: ignore
-from tornado.httpclient import HTTPRequest  # type: ignore
-from tornado.httputil import HTTPServerRequest, parse_cookie  # type: ignore
+from tornado.httpclient import HTTPRequest
+from tornado.httputil import HTTPServerRequest, parse_cookie
 from werkzeug.datastructures import ImmutableMultiDict, Headers
 
 from .util import parse_mimetype

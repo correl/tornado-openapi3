@@ -3,7 +3,7 @@ import json
 from openapi_core.templating.responses.exceptions import (  # type: ignore
     ResponseNotFound,
 )
-import tornado.web  # type: ignore
+import tornado.web
 from tornado_openapi3.handler import OpenAPIRequestHandler
 from tornado_openapi3.testing import AsyncOpenAPITestCase
 
