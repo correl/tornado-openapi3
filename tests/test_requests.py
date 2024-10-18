@@ -1,257 +1,196 @@
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+import dataclasses
+import http.cookies
+import string
+import typing
 import unittest
-from urllib.parse import urlencode, urlparse
+import urllib.parse
 
-import attr
-from hypothesis import given
-import hypothesis.strategies as s  # type: ignore
-from openapi_core import create_spec  # type: ignore
-from openapi_core.exceptions import (  # type: ignore
-    MissingRequiredParameter,
-    OpenAPIError,
-)
-from openapi_core.validation.request.datatypes import (  # type: ignore
-    RequestParameters,
-    OpenAPIRequest,
-)
-from tornado.httpclient import HTTPRequest
-from tornado.httputil import HTTPHeaders, HTTPServerRequest
-from tornado.testing import AsyncHTTPTestCase
-from tornado.web import Application, RequestHandler
+from hypothesis import given, provisional
+import hypothesis.strategies as s
+import openapi_core.datatypes
+import openapi_core.protocols
+from openapi_core.validation.request.datatypes import RequestParameters
+import tornado.httpclient
+import tornado.httputil
 from werkzeug.datastructures import ImmutableMultiDict
 
-from tornado_openapi3 import RequestValidator, TornadoRequestFactory
+import tornado_openapi3.requests
 
+from tests import common
 
-@dataclass
-class Parameters:
-    headers: Dict[str, str]
-    query_parameters: Dict[str, str]
+methods = s.sampled_from(
+    ["get", "head", "post", "put", "delete", "connect", "options", "trace", "patch"]
+)
 
-    def as_openapi(self) -> List[dict]:
-        headers = [
-            {
-                "name": name.lower(),
-                "in": "header",
-                "required": True,
-                "schema": {"type": "string", "enum": [value]},
-            }
-            for name, value in self.headers.items()
-        ]
-        qargs = [
-            {
-                "name": name.lower(),
-                "in": "query",
-                "required": True,
-                "schema": {"type": "string", "enum": [value]},
-            }
-            for name, value in self.query_parameters.items()
-        ]
-        return headers + qargs
-
-
-field_name = s.text(
-    s.characters(
-        min_codepoint=33,
-        max_codepoint=126,
-        blacklist_categories=("Lu",),
-        blacklist_characters=":",
+queries: s.SearchStrategy[ImmutableMultiDict[str, str]] = s.builds(
+    ImmutableMultiDict,
+    s.lists(
+        s.tuples(common.field_names, common.field_values),
     ),
-    min_size=1,
-)
-field_value = s.text(
-    s.characters(min_codepoint=0x20, max_codepoint=0x7E, blacklist_characters=" \r\n"),
-    min_size=1,
 )
 
+cookies: s.SearchStrategy[ImmutableMultiDict[str, str]] = s.builds(
+    ImmutableMultiDict,
+    s.dictionaries(
+        s.text(
+            alphabet=string.ascii_letters + string.digits + "!#$%&'*+-.^_`|~:",
+            min_size=1,
+        ),
+        common.field_values,
+    ),
+)
 
-def headers(min_size: int = 0) -> s.SearchStrategy[Dict[str, str]]:
-    return s.dictionaries(field_name, field_value, min_size=min_size)
+request_parameters = s.builds(
+    RequestParameters,
+    query=queries,
+    header=common.headers,
+    cookie=cookies,
+)
 
 
-def query_parameters(min_size: int = 0) -> s.SearchStrategy[Dict[str, str]]:
-    return s.dictionaries(field_name, field_value, min_size=min_size)
+@dataclasses.dataclass
+class TestOpenAPIRequest:
+    parameters: openapi_core.datatypes.RequestParameters
+    method: str
+    body: typing.Optional[bytes]
+    content_type: str
+    host_url: str
+    path: str
 
 
 @s.composite
-def parameters(
-    draw: Callable[[Any], Any], min_headers: int = 0, min_query_parameters: int = 0
-) -> Parameters:
-    return Parameters(
-        headers=draw(headers(min_size=min_headers)),
-        query_parameters=draw(query_parameters(min_size=min_query_parameters)),
+def openapi_requests(
+    draw: typing.Callable[[typing.Any], typing.Any]
+) -> openapi_core.protocols.Request:
+    url = draw(provisional.urls())
+    parts = urllib.parse.urlparse(url)
+    content_type = draw(common.field_values)
+    parameters = draw(request_parameters)
+    parameters.header["Content-Type"] = content_type
+    if parameters.cookie:
+        cookie = http.cookies.SimpleCookie()
+        for key, value in parameters.cookie.items():
+            cookie[key] = value
+
+        for header in cookie.output(header="").splitlines():
+            parameters.header.add_header("Cookie", header.strip())
+    return TestOpenAPIRequest(
+        parameters=parameters,
+        method=draw(methods),
+        body=draw(s.one_of(s.none(), s.binary())),
+        content_type=content_type,
+        host_url="{}://{}".format(parts.scheme, parts.netloc),
+        path=parts.path,
     )
 
 
-class TestRequestFactory(unittest.TestCase):
-    @given(
-        s.one_of(
-            s.tuples(s.just(""), s.just(dict())),
-            s.tuples(s.just("http://example.com/foo"), query_parameters()),
-        )
-    )
-    def test_http_request(self, opts: Tuple[str, Dict[str, str]]) -> None:
-        url, parameters = opts
-        request_url = f"{url}?{urlencode(parameters)}" if url else ""
-        tornado_request = HTTPRequest(method="GET", url=request_url)
-        expected = OpenAPIRequest(
-            full_url_pattern=url,
-            method="get",
-            parameters=RequestParameters(query=ImmutableMultiDict(parameters)),
-            body=None,
-            mimetype="application/x-www-form-urlencoded",
-        )
-        openapi_request = TornadoRequestFactory.create(tornado_request)
-        self.assertEqual(attr.asdict(expected), attr.asdict(openapi_request))
-
-    @given(
-        s.one_of(
-            s.tuples(s.just(""), s.just(dict())),
-            s.tuples(s.just("http://example.com/foo"), query_parameters()),
-        )
-    )
-    def test_http_server_request(self, opts: Tuple[str, Dict[str, str]]) -> None:
-        url, parameters = opts
-        request_url = f"{url}?{urlencode(parameters)}" if url else ""
-        parsed = urlparse(request_url)
-        tornado_request = HTTPServerRequest(
-            method="GET",
-            uri=f"{parsed.path}?{parsed.query}",
-        )
-        tornado_request.protocol = parsed.scheme
-        tornado_request.host = parsed.netloc.split(":")[0]
-        expected = OpenAPIRequest(
-            full_url_pattern=url,
-            method="get",
-            parameters=RequestParameters(
-                query=ImmutableMultiDict(parameters), path={}, cookie={}
-            ),
-            body=None,
-            mimetype="application/x-www-form-urlencoded",
-        )
-        openapi_request = TornadoRequestFactory.create(tornado_request)
-        self.assertEqual(attr.asdict(expected), attr.asdict(openapi_request))
-
-
-class TestRequest(AsyncHTTPTestCase):
-    def setUp(self) -> None:
-        super(TestRequest, self).setUp()
-        self.request: Optional[HTTPServerRequest] = None
-
-    def get_app(self) -> Application:
-        testcase = self
-
-        class TestHandler(RequestHandler):
-            def get(self) -> None:
-                nonlocal testcase
-                testcase.request = self.request
-
-        return Application([(r"/.*", TestHandler)])
-
-    @given(parameters())
-    def test_simple_request(self, parameters: Parameters) -> None:
-        spec = create_spec(
-            {
-                "openapi": "3.0.0",
-                "info": {"title": "Test specification", "version": "0.1"},
-                "paths": {
-                    "/": {
-                        "get": {
-                            "parameters": parameters.as_openapi(),
-                            "responses": {"default": {"description": "Root response"}},
-                        }
-                    }
-                },
-            }
-        )
-        validator = RequestValidator(spec)
-        self.fetch(
-            "/?" + urlencode(parameters.query_parameters),
-            headers=HTTPHeaders(parameters.headers),
-        )
-        assert self.request is not None
-        result = validator.validate(self.request)
-        result.raise_for_errors()
-
-    @given(parameters(min_headers=1) | parameters(min_query_parameters=1))
-    def test_simple_request_fails_without_parameters(
-        self, parameters: Parameters
+class RequestTests(unittest.TestCase):
+    def assertOpenAPIRequestsEqual(
+        self,
+        value: openapi_core.protocols.Request,
+        expected: openapi_core.protocols.Request,
     ) -> None:
-        spec = create_spec(
-            {
-                "openapi": "3.0.0",
-                "info": {"title": "Test specification", "version": "0.1"},
-                "paths": {
-                    "/": {
-                        "get": {
-                            "parameters": parameters.as_openapi(),
-                            "responses": {"default": {"description": "Root response"}},
-                        }
-                    }
-                },
-            }
+        self.assertEqual(
+            value.parameters.query,
+            expected.parameters.query,
+            "Query parameters are equal",
         )
-        validator = RequestValidator(spec)
-        self.fetch("/")
-        assert self.request is not None
-        result = validator.validate(self.request)
-        with self.assertRaises(MissingRequiredParameter):
-            result.raise_for_errors()
+        self.assertEqual(
+            value.parameters.header, expected.parameters.header, "Headers are equal"
+        )
+        self.assertEqual(
+            value.parameters.cookie, expected.parameters.cookie, "Cookies are equal"
+        )
+        self.assertEqual(value.method, expected.method, "HTTP methods are equal")
+        self.assertEqual(value.body, expected.body, "Bodies are equal")
+        self.assertEqual(
+            value.content_type, expected.content_type, "Content types are equal"
+        )
+        self.assertEqual(value.host_url, expected.host_url, "Host URLs are equal")
+        self.assertEqual(value.path, expected.path, "Paths are equal")
 
-    def test_url_parameters(self) -> None:
-        spec = create_spec(
-            {
-                "openapi": "3.0.0",
-                "info": {"title": "Test specification", "version": "0.1"},
-                "paths": {
-                    "/{id}": {
-                        "get": {
-                            "parameters": [
-                                {
-                                    "name": "id",
-                                    "in": "path",
-                                    "required": True,
-                                    "schema": {"type": "integer"},
-                                }
-                            ],
-                            "responses": {"default": {"description": "Root response"}},
-                        }
-                    }
-                },
-            }
+    def url_from_openapi_request(self, request: TestOpenAPIRequest) -> str:
+        scheme, netloc = request.host_url.split("://")
+        params = ""
+        # Preserves multiple values if the parameters are a multidict. This
+        # whole dance is because ImmutableMultiDict's .items() does not return
+        # more than one pair per key. Curiously, the Headers structure from the
+        # same library does.
+        qsl: typing.List[typing.Tuple[str, str]] = []
+        query_parameters = ImmutableMultiDict(request.parameters.query)
+        for key in query_parameters.keys():
+            for value in query_parameters.getlist(key):
+                qsl.append((key, value))
+        query = urllib.parse.urlencode(qsl)
+        fragment = ""
+        return urllib.parse.urlunparse(
+            (
+                scheme,
+                netloc,
+                request.path,
+                params,
+                query,
+                fragment,
+            )
         )
-        validator = RequestValidator(spec)
-        self.fetch("/1234")
-        assert self.request is not None
-        result = validator.validate(self.request)
-        result.raise_for_errors()
 
-    def test_bad_url_parameters(self) -> None:
-        spec = create_spec(
-            {
-                "openapi": "3.0.0",
-                "info": {"title": "Test specification", "version": "0.1"},
-                "paths": {
-                    "/{id}": {
-                        "get": {
-                            "parameters": [
-                                {
-                                    "name": "id",
-                                    "in": "path",
-                                    "required": True,
-                                    "schema": {"type": "integer"},
-                                }
-                            ],
-                            "responses": {"default": {"description": "Root response"}},
-                        }
-                    }
-                },
-            }
+    def tornado_headers_from_openapi_request(
+        self, request: TestOpenAPIRequest
+    ) -> tornado.httputil.HTTPHeaders:
+        headers = tornado.httputil.HTTPHeaders()
+        for key, value in request.parameters.header.items():
+            headers.add(key, value)
+        headers["Content-Type"] = request.content_type
+        if request.parameters.cookie:
+            cookie = http.cookies.SimpleCookie()
+            for key, value in request.parameters.cookie.items():
+                cookie[key] = value
+            for header in cookie.output(header="").splitlines():
+                headers.add("Cookie", header.strip())
+        return headers
+
+    def openapi_to_tornado_request(
+        self, request: TestOpenAPIRequest
+    ) -> tornado.httpclient.HTTPRequest:
+        url = self.url_from_openapi_request(request)
+        headers = self.tornado_headers_from_openapi_request(request)
+        return tornado.httpclient.HTTPRequest(
+            url,
+            method=request.method.upper(),
+            headers=headers,
+            body=request.body,
         )
-        validator = RequestValidator(spec)
-        self.fetch("/abcd")
-        assert self.request is not None
-        result = validator.validate(self.request)
-        with self.assertRaises(OpenAPIError):
-            result.raise_for_errors()
+
+    def openapi_to_tornado_server_request(
+        self, request: TestOpenAPIRequest
+    ) -> tornado.httputil.HTTPServerRequest:
+        url = self.url_from_openapi_request(request)
+        headers = self.tornado_headers_from_openapi_request(request)
+        uri = url.removeprefix(request.host_url)
+        server_request = tornado.httputil.HTTPServerRequest(
+            method=request.method.upper(), uri=uri, headers=headers, body=request.body
+        )
+        scheme, netloc = request.host_url.split("://")
+        server_request.protocol = scheme
+        server_request.host = netloc
+        return server_request
+
+    @given(openapi_requests())
+    def test_http_request_round_trip_conversion(
+        self, request: TestOpenAPIRequest
+    ) -> None:
+        converted = tornado_openapi3.requests.TornadoOpenAPIRequest(
+            self.openapi_to_tornado_request(request)
+        )
+        self.assertOpenAPIRequestsEqual(converted, request)
+
+    @given(openapi_requests())
+    def test_http_server_request_round_trip_conversion(
+        self, request: TestOpenAPIRequest
+    ) -> None:
+        # HTTP Server request bodies are not optional
+        request.body = request.body or b""
+        converted = tornado_openapi3.requests.TornadoOpenAPIRequest(
+            self.openapi_to_tornado_server_request(request)
+        )
+        self.assertOpenAPIRequestsEqual(converted, request)

@@ -1,110 +1,81 @@
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+import dataclasses
+import io
+import typing
 import unittest
 
-import attr
 
 from hypothesis import given
 import hypothesis.strategies as s
 
-from openapi_core import create_spec  # type: ignore
-from openapi_core.validation.response.datatypes import OpenAPIResponse  # type: ignore
-from tornado.httpclient import HTTPRequest, HTTPResponse
-from tornado.testing import AsyncHTTPTestCase
-from tornado.web import Application, RequestHandler
+import openapi_core.protocols
+import tornado.httpclient
+import tornado.httputil
+from werkzeug.datastructures import Headers
 
-from tornado_openapi3 import (
-    ResponseValidator,
-    TornadoResponseFactory,
-)
+import tornado_openapi3.responses
+
+from tests import common
+import tornado_openapi3
 
 
-@dataclass
-class Responses:
-    code: int
-    headers: Dict[str, str]
-
-    def as_openapi(self) -> Dict[str, Any]:
-        return {
-            str(self.code): {
-                "description": "Response",
-                "headers": {
-                    name: {"schema": {"type": "string", "enum": [value]}}
-                    for name, value in self.headers.items()
-                },
-            }
-        }
+@dataclasses.dataclass
+class TestOpenAPIResponse:
+    status_code: int
+    headers: Headers
+    content_type: str
+    data: typing.Optional[bytes]
 
 
 @s.composite
-def responses(draw: Callable[[Any], Any], min_headers: int = 0) -> Responses:
-    field_name = s.text(
-        s.characters(
-            min_codepoint=33,
-            max_codepoint=126,
-            blacklist_categories=("Lu",),
-            blacklist_characters=":",
-        ),
-        min_size=1,
-    )
-    field_value = s.text(
-        s.characters(
-            min_codepoint=0x20, max_codepoint=0x7E, blacklist_characters=" \r\n"
-        ),
-        min_size=1,
-    )
-    code = s.sampled_from([200, 304, 400, 500])
-    headers = s.dictionaries(field_name, field_value, min_size=min_headers)
-    return Responses(
-        code=draw(code),
-        headers=draw(headers),
+def openapi_responses(
+    draw: typing.Callable[[typing.Any], typing.Any]
+) -> openapi_core.protocols.Response:
+    status_code = draw(s.integers(min_value=100, max_value=599))
+    headers = draw(common.headers)
+    content_type = draw(common.field_values)
+    headers["Content-Type"] = content_type
+    data = draw(s.binary())
+    return TestOpenAPIResponse(
+        status_code=status_code,
+        headers=headers,
+        content_type=content_type,
+        data=data,
     )
 
 
-class TestResponseFactory(unittest.TestCase):
-    def test_response(self) -> None:
-        tornado_request = HTTPRequest(url="http://example.com")
-        tornado_response = HTTPResponse(request=tornado_request, code=200)
-        expected = OpenAPIResponse(
-            data=b"",
-            status_code=200,
-            mimetype="text/html",
+class ResponseTests(unittest.TestCase):
+    def assertOpenAPIResponsesEqual(
+        self,
+        value: openapi_core.protocols.Response,
+        expected: openapi_core.protocols.Response,
+    ) -> None:
+        self.assertEqual(
+            value.status_code, expected.status_code, "Status codes are equal"
         )
-        openapi_response = TornadoResponseFactory.create(tornado_response)
-        self.assertEqual(attr.asdict(expected), attr.asdict(openapi_response))
-
-
-class ResponsesHandler(RequestHandler):
-    responses: Optional[Responses] = None
-
-    def get(self) -> None:
-        if ResponsesHandler.responses:
-            self.set_status(ResponsesHandler.responses.code)
-            for name, value in ResponsesHandler.responses.headers.items():
-                self.add_header(name, value)
-
-
-class TestResponse(AsyncHTTPTestCase):
-    def get_app(self) -> Application:
-        return Application([(r"/.*", ResponsesHandler)])
-
-    @given(responses())
-    def test_simple_request(self, responses: Responses) -> None:
-        spec = create_spec(
-            {
-                "openapi": "3.0.0",
-                "info": {"title": "Test specification", "version": "0.1"},
-                "paths": {
-                    "/": {
-                        "get": {
-                            "responses": responses.as_openapi(),
-                        }
-                    }
-                },
-            }
+        self.assertEqual(value.headers, expected.headers, "Headers are equal")
+        self.assertEqual(
+            value.content_type, expected.content_type, "Content types are equal"
         )
-        ResponsesHandler.responses = responses
-        validator = ResponseValidator(spec)
-        response = self.fetch("/")
-        result = validator.validate(response)
-        result.raise_for_errors()
+        self.assertEqual(value.data, expected.data, "Bodies are equal")
+
+    def openapi_to_tornado_response(
+        self, response: TestOpenAPIResponse
+    ) -> tornado.httpclient.HTTPResponse:
+        headers = tornado.httputil.HTTPHeaders()
+        for key, value in response.headers.items():
+            headers.add(key, value)
+        return tornado.httpclient.HTTPResponse(
+            request=tornado.httpclient.HTTPRequest(""),
+            code=response.status_code,
+            headers=headers,
+            buffer=io.BytesIO(response.data or b""),
+        )
+
+    @given(openapi_responses())
+    def test_http_response_round_trip_conversion(
+        self, response: TestOpenAPIResponse
+    ) -> None:
+        converted = tornado_openapi3.responses.TornadoOpenAPIResponse(
+            self.openapi_to_tornado_response(response)
+        )
+        self.assertOpenAPIResponsesEqual(converted, response)

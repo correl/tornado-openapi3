@@ -1,75 +1,58 @@
-import itertools
+import typing
+import urllib.parse
 from urllib.parse import parse_qsl
-from typing import Union
 
-from openapi_core.validation.request.datatypes import (  # type: ignore
-    OpenAPIRequest,
-    RequestParameters,
-    RequestValidationResult,
-)
-from openapi_core.validation.request import validators  # type: ignore
+from openapi_core.validation.request.datatypes import RequestParameters
+
 from tornado.httpclient import HTTPRequest
 from tornado.httputil import HTTPServerRequest, parse_cookie
 from werkzeug.datastructures import ImmutableMultiDict, Headers
 
-from .util import parse_mimetype
 
-
-class TornadoRequestFactory:
-    """Factory for converting Tornado requests to OpenAPI request objects."""
-
-    @classmethod
-    def create(cls, request: Union[HTTPRequest, HTTPServerRequest]) -> OpenAPIRequest:
-        """Creates an OpenAPI request from Tornado request objects.
+class TornadoOpenAPIRequest:
+    def __init__(self, request: typing.Union[HTTPRequest, HTTPServerRequest]) -> None:
+        """Create an OpenAPI request from Tornado request objects.
 
         Supports both :class:`tornado.httpclient.HTTPRequest` and
         :class:`tornado.httputil.HTTPServerRequest` objects.
 
         """
+        self.request = request
         if isinstance(request, HTTPRequest):
-            if request.url:
-                path, _, querystring = request.url.partition("?")
-                query_arguments: ImmutableMultiDict[str, str] = ImmutableMultiDict(
-                    parse_qsl(querystring)
-                )
-            else:
-                path = ""
-                query_arguments = ImmutableMultiDict()
+            parts = urllib.parse.urlparse(request.url)
         else:
-            path, _, _ = request.full_url().partition("?")
-            if path == "://":
-                path = ""
-            query_arguments = ImmutableMultiDict(
-                itertools.chain(
-                    *[
-                        [(k, v.decode("utf-8")) for v in vs]
-                        for k, vs in request.query_arguments.items()
-                    ]
-                )
-            )
-        return OpenAPIRequest(
-            full_url_pattern=path,
-            method=request.method.lower() if request.method else "get",
-            parameters=RequestParameters(
-                query=query_arguments,
-                header=Headers(request.headers.get_all()),
-                cookie=parse_cookie(request.headers.get("Cookie", "")),
-            ),
-            body=request.body if request.body else None,
-            mimetype=parse_mimetype(
-                request.headers.get("Content-Type", "application/x-www-form-urlencoded")
-            ),
+            parts = urllib.parse.urlparse(request.full_url())
+        protocol = parts.scheme
+        host = parts.netloc
+        path = parts.path
+        query_arguments = parse_qsl(parts.query)
+        self.protocol = protocol
+        self.host = host
+        self.path = path
+        cookies = {}
+        for values in request.headers.get_list("Cookie"):
+            cookies.update(parse_cookie(values))
+        self.parameters = RequestParameters(
+            query=ImmutableMultiDict(query_arguments),
+            header=Headers(request.headers.get_all()),
+            cookie=ImmutableMultiDict(cookies),
+        )
+        self.content_type = request.headers.get(
+            "Content-Type", "application/x-www-form-urlencoded"
         )
 
+    @property
+    def host_url(self) -> str:
+        return "{}://{}".format(self.protocol, self.host)
 
-class RequestValidator(validators.RequestValidator):
-    """Validator for Tornado HTTP Requests."""
+    @property
+    def method(self) -> str:
+        method = self.request.method or "GET"
+        return method.lower()
 
-    def validate(
-        self, request: Union[HTTPRequest, HTTPServerRequest]
-    ) -> RequestValidationResult:
-        """Validate a Tornado HTTP request object."""
-        return super().validate(TornadoRequestFactory.create(request))
+    @property
+    def body(self) -> typing.Optional[bytes]:
+        return self.request.body
 
 
-__all__ = ["RequestValidator", "TornadoRequestFactory"]
+__all__ = ["TornadoOpenAPIRequest"]

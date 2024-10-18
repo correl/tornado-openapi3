@@ -1,11 +1,12 @@
-from typing import Any
+import typing
 
 import tornado.httpclient
 import tornado.testing
+import openapi_core
 
-from openapi_core import create_spec  # type: ignore
-from openapi_core.spec.paths import SpecPath  # type: ignore
-from tornado_openapi3.responses import ResponseValidator
+from tornado_openapi3.requests import TornadoOpenAPIRequest
+from tornado_openapi3.responses import TornadoOpenAPIResponse
+from tornado_openapi3.types import Deserializer, Formatter
 
 
 class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
@@ -29,7 +30,7 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         raise NotImplementedError()
 
     @property
-    def spec(self) -> SpecPath:
+    def spec(self) -> openapi_core.OpenAPI:
         """The OpenAPI 3 specification.
 
         Override this in your test cases to customize how your OpenAPI 3 spec is
@@ -38,10 +39,21 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         :rtype: :class:`openapi_core.schema.specs.model.Spec`
 
         """
-        return create_spec(self.spec_dict)
+        config = openapi_core.Config(
+            extra_format_unmarshallers={
+                format: formatter.unmarshal
+                for format, formatter in self.custom_formatters.items()
+            },
+            extra_format_validators={
+                format: formatter.validate
+                for format, formatter in self.custom_formatters.items()
+            },
+            extra_media_type_deserializers=self.custom_media_type_deserializers,
+        )
+        return openapi_core.OpenAPI.from_dict(self.spec_dict, config=config)
 
     @property
-    def custom_formatters(self) -> dict:
+    def custom_formatters(self) -> typing.Dict[str, Formatter]:
         """A dictionary mapping value formats to formatter objects.
 
         A formatter object must provide:
@@ -52,7 +64,7 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         return dict()
 
     @property
-    def custom_media_type_deserializers(self) -> dict:
+    def custom_media_type_deserializers(self) -> typing.Dict[str, Deserializer]:
         """A dictionary mapping media types to deserializing functions.
 
         If your endpoints make use of content types beyond ``application/json``,
@@ -62,22 +74,8 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
         """
         return dict()
 
-    def setUp(self) -> None:
-        """Hook method for setting up the test fixture before exercising it.
-
-        Instantiates the :class:`~tornado_openapi3.responses.ResponseValidator`
-        for this test case.
-
-        """
-        super().setUp()
-        self.validator = ResponseValidator(
-            self.spec,
-            custom_formatters=self.custom_formatters,
-            custom_media_type_deserializers=self.custom_media_type_deserializers,
-        )
-
     def fetch(
-        self, path: str, raise_error: bool = False, **kwargs: Any
+        self, path: str, raise_error: bool = False, **kwargs: typing.Any
     ) -> tornado.httpclient.HTTPResponse:
         """Convenience methiod to synchronously fetch a URL.
 
@@ -95,7 +93,10 @@ class AsyncOpenAPITestCase(tornado.testing.AsyncHTTPTestCase):
             return super().fetch(path, raise_error=raise_error, **kwargs)
 
         response = super().fetch(path, raise_error=False, **kwargs)
-        result = self.validator.validate(response)
+        result = self.spec.unmarshal_response(
+            request=TornadoOpenAPIRequest(response.request),
+            response=TornadoOpenAPIResponse(response),
+        )
         result.raise_for_errors()
         if raise_error:
             response.rethrow()

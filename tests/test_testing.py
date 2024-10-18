@@ -1,11 +1,13 @@
 import json
+import typing
 
-from openapi_core.templating.responses.exceptions import (  # type: ignore
+from openapi_core.templating.responses.exceptions import (
     ResponseNotFound,
 )
 import tornado.web
 from tornado_openapi3.handler import OpenAPIRequestHandler
 from tornado_openapi3.testing import AsyncOpenAPITestCase
+from tornado_openapi3.types import Deserializer
 
 
 def spec(responses: dict = dict()) -> dict:
@@ -37,11 +39,9 @@ def spec(responses: dict = dict()) -> dict:
 
 
 class TestTestCase(AsyncOpenAPITestCase):
-    def setUp(self) -> None:
-        ...
+    def setUp(self) -> None: ...
 
-    def tearDown(self) -> None:
-        ...
+    def tearDown(self) -> None: ...
 
     def test_schema_must_be_implemented(self) -> None:
         with self.assertRaises(NotImplementedError):
@@ -52,25 +52,36 @@ class TestTestCase(AsyncOpenAPITestCase):
 
 
 class BaseTestCase(AsyncOpenAPITestCase):
-    spec_dict = spec()
-    custom_media_type_deserializers = {
-        "application/vnd.example.resource+json": json.loads,
-    }
+    @property
+    def spec_dict(self) -> dict:
+        return spec()
+
+    @property
+    def custom_media_type_deserializers(self) -> typing.Dict[str, Deserializer]:
+        return {
+            "application/vnd.example.resource+json": json.loads,
+        }
 
     def get_app(self) -> tornado.web.Application:
         testcase = self
 
         class ResourceHandler(OpenAPIRequestHandler):
-            spec = self.spec
-            custom_media_type_deserializers = self.custom_media_type_deserializers
+            @property
+            def spec_dict(self) -> dict:
+                return spec()
+
+            @property
+            def custom_media_type_deserializers(self) -> typing.Dict[str, Deserializer]:
+                return {
+                    "application/vnd.example.resource+json": json.loads,
+                }
 
             async def get(self) -> None:
                 await testcase.get(self)
 
         return tornado.web.Application([(r"/resource", ResourceHandler)])
 
-    async def get(self, handler: tornado.web.RequestHandler) -> None:
-        ...
+    async def get(self, handler: tornado.web.RequestHandler) -> None: ...
 
 
 class SuccessTests(BaseTestCase):
@@ -97,7 +108,9 @@ class SuccessTests(BaseTestCase):
 
 
 class IncorrectResponseTests(BaseTestCase):
-    spec_dict = spec(responses={"200": {"description": "Success"}})
+    @property
+    def spec_dict(self) -> dict:
+        return spec(responses={"200": {"description": "Success"}})
 
     async def get(self, handler: tornado.web.RequestHandler) -> None:
         handler.set_status(400)
@@ -112,13 +125,15 @@ class IncorrectResponseTests(BaseTestCase):
 
 
 class RaiseErrorTests(BaseTestCase):
-    spec_dict = spec(
-        responses={
-            "500": {
-                "description": "An error has occurred.",
+    @property
+    def spec_dict(self) -> dict:
+        return spec(
+            responses={
+                "500": {
+                    "description": "An error has occurred.",
+                }
             }
-        }
-    )
+        )
 
     async def get(self, handler: tornado.web.RequestHandler) -> None:
         handler.set_status(500)

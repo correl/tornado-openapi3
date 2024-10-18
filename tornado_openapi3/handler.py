@@ -1,28 +1,25 @@
 import asyncio
 import logging
-from typing import Mapping
+import typing
 
-from openapi_core import create_spec  # type: ignore
-from openapi_core.casting.schemas.exceptions import CastError  # type: ignore
-from openapi_core.exceptions import (  # type: ignore
-    MissingRequestBody,
-    MissingRequiredParameter,
-    OpenAPIError,
+import openapi_core
+import openapi_core.validation.request.exceptions
+from openapi_core.exceptions import OpenAPIError
+from openapi_core.validation.request.exceptions import (
+    RequestBodyValidationError,
+    SecurityValidationError,
 )
-from openapi_core.deserializing.exceptions import DeserializeError  # type: ignore
-from openapi_core.spec.paths import SpecPath  # type: ignore
-from openapi_core.templating.media_types.exceptions import (  # type: ignore
+from openapi_core.templating.media_types.exceptions import (
     MediaTypeNotFound,
 )
-from openapi_core.templating.paths.exceptions import (  # type: ignore
+from openapi_core.templating.paths.exceptions import (
     OperationNotFound,
     PathNotFound,
 )
-from openapi_core.unmarshalling.schemas.exceptions import ValidateError  # type: ignore
-from openapi_core.validation.exceptions import InvalidSecurity  # type: ignore
 import tornado.web
 
-from tornado_openapi3.requests import RequestValidator
+import tornado_openapi3.requests
+import tornado_openapi3.types
 from tornado_openapi3.types import Deserializer, Formatter
 
 logger = logging.getLogger(__name__)
@@ -50,7 +47,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         raise NotImplementedError()
 
     @property
-    def spec(self) -> SpecPath:
+    def spec(self) -> openapi_core.OpenAPI:
         """The OpenAPI 3 specification.
 
         Override this in your request handlers to customize how your OpenAPI 3
@@ -59,10 +56,21 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         :rtype: :class:`openapi_core.schema.specs.model.Spec`
 
         """
-        return create_spec(self.spec_dict, validate_spec=False)
+        config = openapi_core.Config(
+            extra_format_unmarshallers={
+                format: formatter.unmarshal
+                for format, formatter in self.custom_formatters.items()
+            },
+            extra_format_validators={
+                format: formatter.validate
+                for format, formatter in self.custom_formatters.items()
+            },
+            extra_media_type_deserializers=self.custom_media_type_deserializers,
+        )
+        return openapi_core.OpenAPI.from_dict(self.spec_dict, config=config)
 
     @property
-    def custom_formatters(self) -> Mapping[str, Formatter]:
+    def custom_formatters(self) -> typing.Dict[str, Formatter]:
         """A dictionary mapping value formats to formatter objects.
 
         If your schemas make use of format modifiers, you may specify them in
@@ -76,7 +84,7 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         return dict()
 
     @property
-    def custom_media_type_deserializers(self) -> Mapping[str, Deserializer]:
+    def custom_media_type_deserializers(self) -> typing.Dict[str, Deserializer]:
         """A dictionary mapping media types to deserializing functions.
 
         If your endpoints make use of content types beyond ``application/json``,
@@ -128,31 +136,22 @@ class OpenAPIRequestHandler(tornado.web.RequestHandler):
         if maybe_coro and asyncio.iscoroutine(maybe_coro):  # pragma: no cover
             await maybe_coro
 
-        validator = RequestValidator(
-            self.spec,
-            custom_formatters=self.custom_formatters,
-            custom_media_type_deserializers=self.custom_media_type_deserializers,
-        )
-        result = validator.validate(self.request)
+        request = tornado_openapi3.requests.TornadoOpenAPIRequest(self.request)
+        result = self.spec.unmarshal_request(request)
         try:
             result.raise_for_errors()
         except PathNotFound as e:
             self.on_openapi_error(404, e)
         except OperationNotFound as e:
             self.on_openapi_error(405, e)
-        except (
-            CastError,
-            DeserializeError,
-            MissingRequiredParameter,
-            MissingRequestBody,
-            ValidateError,
-        ) as e:
-            self.on_openapi_error(400, e)
-        except InvalidSecurity as e:
+        except RequestBodyValidationError as e:
+            if isinstance(e.__cause__, MediaTypeNotFound):
+                self.on_openapi_error(415, e)
+            else:
+                self.on_openapi_error(400, e)
+        except SecurityValidationError as e:
             self.on_openapi_error(401, e)
-        except MediaTypeNotFound as e:
-            self.on_openapi_error(415, e)
-        except OpenAPIError as e:
+        except OpenAPIError as e:  # pragma: no cover
             logger.exception("Unexpected validation failure")
             self.on_openapi_error(500, e)
         self.validated = result
