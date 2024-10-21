@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tornado-openapi3"
-version = "1.1.2"
+version = "1.2.0"
 description = "Tornado OpenAPI 3 request and response validation library"
 authors = ["Correl Roush <correl@gmail.com>"]
 license = "MIT"
