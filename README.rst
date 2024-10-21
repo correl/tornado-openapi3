@@ -2,8 +2,6 @@
  Tornado OpenAPI 3
 ===================
 
-.. image:: https://travis-ci.com/correl/tornado-openapi3.svg?branch=master
-    :target: https://travis-ci.com/correl/tornado-openapi3
 .. image:: https://codecov.io/gh/correl/tornado-openapi3/branch/master/graph/badge.svg?token=CTYWWDXTL9
     :target: https://codecov.io/gh/correl/tornado-openapi3
 .. image:: https://readthedocs.org/projects/tornado-openapi3/badge/
