@@ -2,8 +2,8 @@
  Tornado OpenAPI 3
 ===================
 
-.. image:: https://github.com/correl/tornado-openapi3/actions/workflows/test.yml/badge.svg
-    :target: https://github.com/correl/tornado-openapi3/actions/workflows/test.yml
+.. image:: https://github.com/correl/tornado-openapi3/actions/workflows/test.yml/badge.svg?branch=master
+    :target: https://github.com/correl/tornado-openapi3/actions/workflows/test.yml?branch=master
 .. image:: https://codecov.io/gh/correl/tornado-openapi3/branch/master/graph/badge.svg?token=CTYWWDXTL9
     :target: https://codecov.io/gh/correl/tornado-openapi3
 .. image:: https://readthedocs.org/projects/tornado-openapi3/badge/
