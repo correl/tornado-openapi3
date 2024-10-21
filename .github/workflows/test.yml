@@ -1,3 +1,4 @@
+name: Tox Tests
 on:
   push:
     branches:
