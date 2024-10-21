@@ -29,7 +29,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install tox tox-gh
       - name: Set up test suite
-        run: python -m tox run -vv --notest --skip-missing-interpreters false
+        run: python -m tox run -vv --notest --skip-missing-interpreters true
         env:
           TOX_GH_MAJOR_MINOR: ${{ matrix.python }}
       - name: Run test suite
