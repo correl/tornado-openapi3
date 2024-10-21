@@ -36,4 +36,5 @@ jobs:
       - name: Run test suite
         run: python -m tox run --skip-pkg-install
         env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           TOX_GH_MAJOR_MINOR: ${{ matrix.python }}
